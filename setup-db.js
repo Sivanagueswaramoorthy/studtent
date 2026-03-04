@@ -94,6 +94,35 @@ db.connect((err) => {
         ('sivanagu7771@gmail.com', '2026-03-04', '13:05:00', 'MECH HKV3', 'IN'),
         ('sivanagu7771@gmail.com', '2026-03-04', '08:32:00', 'FT HKV 4', 'IN'),
         ('sivanagu7771@gmail.com', '2026-03-03', '19:12:37', 'PEARL 1', 'OUT');
+         -- ==========================================
+        INSERT INTO student_profile VALUES 
+        ('kvabhinathan@gmail.com', 'Sivanagu E', '737624IT123', 'Information Tech', 8.92, 8.75, 120, 450, 0, 0, 3, 12, 4, 1, '8 LPA');
+        
+        INSERT INTO student_courses (student_email, semester, course_code, course_name, attendance_percentage, marks, grade) VALUES 
+        ('kvabhinathan@gmail.com', 4, 'CS401', 'Database Management', 88.00, 88, 'A'),
+        ('kvabhinathan@gmail.com', 4, 'CS402', 'Web Architecture', 92.00, 92, 'A+'),
+        ('kvabhinathan@gmail.com', 3, 'AI301', 'Artificial Intelligence', 96.00, 96, 'O'),
+        ('kvabhinathan@gmail.com', 3, 'DS302', 'Data Structures', 85.00, 85, 'A');
+
+        INSERT INTO student_projects (student_email, title, status, description, tags) VALUES
+        ('kvabhinathan@gmail.com', 'Worker Maintenance App', 'In Progress', 'Cross-platform mobile application designed for comprehensive workforce management.', 'Mobile App, Management'),
+        ('kvabhinathan@gmail.com', 'College Placement Software', 'In Progress', 'Full-stack enterprise web portal enabling seamless communication for placements.', 'Full-Stack, Database'),
+        ('kvabhinathan@gmail.com', 'Personal Portfolio Webpage', 'Completed', 'Responsive, aesthetically driven personal website built to showcase academic achievements.', 'Frontend, Design');
+
+        INSERT INTO student_skills (student_email, name, levels, completed_levels, category, img_url) VALUES
+        ('kvabhinathan@gmail.com', 'IPR', 1, 1, 'GENERAL Skill', 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=400&q=80'),
+        ('kvabhinathan@gmail.com', 'HTML / CSS', 1, 1, 'Software', 'https://images.unsplash.com/photo-1621839673705-6617adf9e890?auto=format&fit=crop&w=400&q=80'),
+        ('kvabhinathan@gmail.com', 'C Programming', 3, 2, 'Core', 'https://images.unsplash.com/photo-1550439062-609e1531270e?auto=format&fit=crop&w=400&q=80');
+
+        INSERT INTO student_drives (student_email, company, role, drive_date, status) VALUES
+        ('kvabhinathan@gmail.com', 'TCS', 'SDE Intern', 'Mar 15, 2026', 'Registered'),
+        ('kvabhinathan@gmail.com', 'Cognizant', 'Digital Engineer', 'Mar 22, 2026', 'Shortlisted'),
+        ('kvabhinathan@gmail.com', 'Zoho', 'Analyst', 'Apr 05, 2026', 'Not Applied');
+
+        INSERT INTO student_biometrics (student_email, log_date, log_time, device, log_type) VALUES
+        ('kvabhinathan@gmail.com', '2026-03-04', '13:05:00', 'MECH HKV3', 'IN'),
+        ('kvabhinathan@gmail.com', '2026-03-04', '08:32:00', 'FT HKV 4', 'IN'),
+        ('kvabhinathan@gmail.com', '2026-03-03', '19:12:37', 'PEARL 1', 'OUT');
     `;
 
     db.query(masterSQL, (err) => {
