@@ -3,96 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BIT Admin | Management Console</title>
+    <title>BIT Admin | Master Control</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #4318FF; --bg: #F4F7FE; --text: #2B3674; --shadow: 0px 18px 40px rgba(112, 144, 176, 0.12); }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 40px 20px; }
-        .admin-card { background: white; width: 100%; max-width: 550px; padding: 40px; border-radius: 30px; box-shadow: var(--shadow); border-top: 6px solid var(--primary); }
-        .header { text-align: center; margin-bottom: 30px; }
-        .header i { font-size: 2rem; color: var(--primary); margin-bottom: 10px; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; color: #8B98B4; margin-bottom: 8px; }
-        input, select { width: 100%; padding: 14px; border: 2px solid #E2E8F0; border-radius: 16px; font-weight: 600; outline: none; transition: 0.2s; background: #FBFCFF; }
-        input:focus { border-color: var(--primary); background: white; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .btn-sync { width: 100%; background: var(--primary); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 800; cursor: pointer; margin-top: 15px; box-shadow: 0px 10px 20px rgba(67, 24, 255, 0.2); transition: 0.3s; }
-        .btn-sync:hover { transform: translateY(-2px); box-shadow: 0px 12px 25px rgba(67, 24, 255, 0.3); }
-        #status { margin-top: 20px; text-align: center; font-weight: 700; border-radius: 12px; display: none; padding: 15px; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); padding-bottom: 50px;}
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 24px; padding: 30px; box-shadow: var(--shadow); margin-bottom: 25px; }
+        .section-title { font-weight: 800; font-size: 1.2rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: var(--primary); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; color: #8B98B4; margin-bottom: 6px; }
+        input, select, textarea { width: 100%; padding: 12px; border: 2px solid #E2E8F0; border-radius: 12px; font-weight: 600; outline: none; transition: 0.2s; }
+        input:focus { border-color: var(--primary); }
+        .btn { padding: 12px 24px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; transition: 0.3s; }
+        .btn-primary { background: var(--primary); color: white; width: 100%; }
+        .btn-add { background: #E9E3FF; color: var(--primary); font-size: 0.8rem; margin-top: 10px; }
+        #auth-view { height: 100vh; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
-    <div class="admin-card">
-        <div class="header">
-            <i class="fa-solid fa-user-shield"></i>
-            <h2>Admin Portal</h2>
-            <p id="auth-status">Sign in to manage student records</p>
+    <div id="auth-view"><div id="g_id_signin"></div></div>
+
+    <div id="admin-view" class="container" style="display: none;">
+        <div class="card">
+            <div class="section-title"><i class="fa-solid fa-user-graduate"></i> Student Selection</div>
+            <select id="targetEmail" onchange="loadStudentContext()">
+                <option value="sivanagu7771@gmail.com">Sivanagu E</option>
+                <option value="kvabhinanthan@gmail.com">Abhinanthan K V</option>
+            </select>
         </div>
 
-        <div id="g_id_signin" style="display: flex; justify-content: center; margin-bottom: 20px;"></div>
-
-        <form id="admin-form" style="display: none;">
-            <div class="form-group">
-                <label>Target Student</label>
-                <select id="targetEmail">
-                    <option value="sivanagu7771@gmail.com">Sivanagu E</option>
-                    <option value="kvabhinanthan@gmail.com">Abhinanthan K V</option>
-                    <option value="sivanague@gmail.com">Sivanagu Personal</option>
-                </select>
+        <form id="masterForm">
+            <div class="card">
+                <div class="section-title"><i class="fa-solid fa-gauge-high"></i> Dashboard & Profile</div>
+                <div class="grid">
+                    <div class="form-group"><label>Roll Number</label><input type="text" id="roll_no"></div>
+                    <div class="form-group"><label>Department</label><input type="text" id="dept"></div>
+                    <div class="form-group"><label>CGPA</label><input type="number" id="cgpa" step="0.01"></div>
+                    <div class="form-group"><label>Current SGPA</label><input type="number" id="sgpa" step="0.01"></div>
+                    <div class="form-group"><label>Attendance %</label><input type="number" id="attendance" step="0.1"></div>
+                    <div class="form-group"><label>Reward Points</label><input type="number" id="reward"></div>
+                    <div class="form-group"><label>Arrears</label><input type="number" id="arrears"></div>
+                    <div class="form-group"><label>Leaves</label><input type="number" id="leaves"></div>
+                </div>
             </div>
 
-            <div class="grid">
-                <div class="form-group"><label>CGPA</label><input type="number" id="cgpa" step="0.01" placeholder="9.00"></div>
-                <div class="form-group"><label>SGPA</label><input type="number" id="sgpa" step="0.01" placeholder="8.50"></div>
-                <div class="form-group"><label>Reward Pts</label><input type="number" id="reward" placeholder="500"></div>
-                <div class="form-group"><label>Arrears</label><input type="number" id="arrears" placeholder="0"></div>
+            <div class="card">
+                <div class="section-title"><i class="fa-solid fa-briefcase"></i> Placement Services</div>
+                <div class="grid">
+                    <div class="form-group"><label>Applied</label><input type="number" id="p_applied"></div>
+                    <div class="form-group"><label>Shortlisted</label><input type="number" id="p_short"></div>
+                    <div class="form-group"><label>Offers</label><input type="number" id="p_offers"></div>
+                    <div class="form-group"><label>Highest CTC</label><input type="text" id="p_ctc"></div>
+                </div>
             </div>
 
-            <div class="form-group"><label>Leaves Taken</label><input type="number" id="leaves" placeholder="2"></div>
+            <div class="card">
+                <div class="section-title"><i class="fa-solid fa-award"></i> PCDP Portal (Skill Update)</div>
+                <div id="skill-list"></div>
+                <button type="button" class="btn btn-add" onclick="addSkillRow()"><i class="fa-solid fa-plus"></i> Add New Skill</button>
+            </div>
 
-            <button type="button" class="btn-sync" onclick="syncData()"><i class="fa-solid fa-rotate"></i> Sync to Database</button>
+            <div class="card">
+                <div class="section-title"><i class="fa-solid fa-book"></i> Academic Transcript (Sem Wise)</div>
+                <div id="sem-list"></div>
+                <button type="button" class="btn btn-add" onclick="addSemRow()"><i class="fa-solid fa-plus"></i> Add Semester/Course</button>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="syncMasterData()">SYNC MASTER DATA</button>
         </form>
-        <div id="status"></div>
     </div>
 
     <script>
-        let adminToken = null;
-        function handleCredentialResponse(response) {
-            adminToken = response.credential;
-            document.getElementById('admin-form').style.display = 'block';
-            document.getElementById('g_id_signin').style.display = 'none';
-            document.getElementById('auth-status').innerHTML = '<span style="color:#059669">Authorized Admin Session</span>';
+        let adminJwt = null;
+
+        function addSkillRow() {
+            const div = document.createElement('div');
+            div.className = 'grid skill-item';
+            div.innerHTML = `
+                <input type="text" placeholder="Skill Name" class="s-name">
+                <input type="text" placeholder="Category" class="s-cat">
+                <input type="number" placeholder="Total Levels" class="s-total">
+                <input type="number" placeholder="Completed" class="s-comp">
+                <input type="text" placeholder="Image URL" class="s-img">
+            `;
+            document.getElementById('skill-list').appendChild(div);
         }
 
-        async function syncData() {
-            const status = document.getElementById('status');
-            const updates = {
-                cgpa: document.getElementById('cgpa').value,
-                sgpa: document.getElementById('sgpa').value,
-                reward: document.getElementById('reward').value,
-                arrears: document.getElementById('arrears').value,
-                leaves: document.getElementById('leaves').value
+        function addSemRow() {
+            const div = document.createElement('div');
+            div.className = 'grid sem-item';
+            div.innerHTML = `
+                <input type="number" placeholder="Sem" class="sem-num">
+                <input type="text" placeholder="Course Name" class="sem-course">
+                <input type="number" placeholder="Marks" class="sem-marks">
+                <input type="text" placeholder="Grade" class="sem-grade">
+            `;
+            document.getElementById('sem-list').appendChild(div);
+        }
+
+        async function syncMasterData() {
+            const payload = {
+                adminToken: adminJwt,
+                targetEmail: document.getElementById('targetEmail').value,
+                profile: {
+                    roll_no: document.getElementById('roll_no').value,
+                    dept: document.getElementById('dept').value,
+                    cgpa: document.getElementById('cgpa').value,
+                    sgpa: document.getElementById('sgpa').value,
+                    attendance: document.getElementById('attendance').value,
+                    reward: document.getElementById('reward').value,
+                    arrears: document.getElementById('arrears').value,
+                    leaves: document.getElementById('leaves').value,
+                    applied: document.getElementById('p_applied').value,
+                    shortlisted: document.getElementById('p_short').value,
+                    offers: document.getElementById('p_offers').value,
+                    highest_ctc: document.getElementById('p_ctc').value
+                },
+                skills: Array.from(document.querySelectorAll('.skill-item')).map(row => ({
+                    name: row.querySelector('.s-name').value,
+                    cat: row.querySelector('.s-cat').value,
+                    total: row.querySelector('.s-total').value,
+                    comp: row.querySelector('.s-comp').value,
+                    img: row.querySelector('.s-img').value
+                })),
+                academics: Array.from(document.querySelectorAll('.sem-item')).map(row => ({
+                    sem: row.querySelector('.sem-num').value,
+                    course: row.querySelector('.sem-course').value,
+                    marks: row.querySelector('.sem-marks').value,
+                    grade: row.querySelector('.sem-grade').value
+                }))
             };
 
-            try {
-                const res = await fetch('https://login-o753.onrender.com/api/admin/update-student', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ adminToken, targetEmail: document.getElementById('targetEmail').value, updates })
-                });
-                const data = await res.json();
-                status.style.display = "block";
-                status.style.background = data.success ? "#E6F4EA" : "#FCE8E6";
-                status.style.color = data.success ? "#059669" : "#EE5D50";
-                status.innerText = data.message;
-            } catch (e) { alert("Server Connection Error"); }
+            const res = await fetch('https://login-o753.onrender.com/api/admin/master-sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await res.json();
+            alert(result.message);
+        }
+
+        function handleCredentialResponse(response) {
+            adminJwt = response.credential;
+            document.getElementById('auth-view').style.display = 'none';
+            document.getElementById('admin-view').style.display = 'block';
         }
 
         window.onload = () => {
             google.accounts.id.initialize({ client_id: "318717217301-kot0gq3l7amhtfphhvsbjh4ehau9heb4.apps.googleusercontent.com", callback: handleCredentialResponse });
-            google.accounts.id.renderButton(document.getElementById("g_id_signin"), { theme: "filled_blue", size: "large", shape: "pill" });
+            google.accounts.id.renderButton(document.getElementById("g_id_signin"), { theme: "filled_blue", size: "large" });
         };
     </script>
 </body>
