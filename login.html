@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIT Sathy | Login</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-app: #F4F7FE; --bg-surface: #FFFFFF; --primary: #4318FF; --primary-light: #E9E3FF;
+            --purple: #7C3AED; --text-main: #2B3674; --text-muted: #A3AED0;
+            --shadow-soft: 0px 18px 40px rgba(112, 144, 176, 0.12);
+            --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --radius-card: 20px; --radius-pill: 50px; --success: #10B981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: var(--bg-app); color: var(--text-main); height: 100vh; overflow: hidden; }
+        #login-view { display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; background: var(--bg-app); z-index: 100; }
+        .login-card { background: var(--bg-surface); padding: 3rem; border-radius: var(--radius-card); box-shadow: var(--shadow-soft); text-align: center; width: 100%; max-width: 400px; }
+        .brand-icon { background: var(--primary); color: white; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 8px; margin: 0 auto 20px auto; font-size: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div id="g_id_onload" data-client_id="318717217301-kot0gq3l7amhtfphhvsbjh4ehau9heb4.apps.googleusercontent.com" data-context="signin" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
+
+    <div id="login-view">
+        <div class="login-card">
+            <div class="brand-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+            <h2 style="margin-bottom: 10px;">Portal Login</h2>
+            <p style="color: var(--text-muted); margin-bottom: 30px; font-size: 0.9rem;">Sign in to access your dashboard</p>
+            <div style="display: flex; justify-content: center;">
+                <div class="g_id_signin" data-type="standard" data-theme="outline" data-size="large"></div>
+            </div>
+            <div id="error-msg" style="display: none; color: red; margin-top: 15px; font-size: 0.9rem; font-weight: 600;"></div>
+        </div>
+    </div>
+
+    <script>
+        async function handleCredentialResponse(response) {
+            const googleToken = response.credential;
+            const errorMsg = document.getElementById('error-msg');
+            try {
+                const serverResponse = await fetch('https://login-o753.onrender.com/api/get-dashboard-data', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: googleToken })
+                });
+                const result = await serverResponse.json();
+                if (result.success) {
+                    sessionStorage.setItem('portalData', JSON.stringify(result));
+                    window.location.href = 'dashboard.html';
+                } else {
+                    errorMsg.innerText = result.message; errorMsg.style.display = 'block';
+                }
+            } catch (error) {
+                errorMsg.innerText = "Connection failed. Please check your internet."; errorMsg.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
