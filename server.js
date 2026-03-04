@@ -23,25 +23,28 @@ const dbPool = mysql.createPool({
     waitForConnections: true, connectionLimit: 10, queueLimit: 0,
     ssl: { rejectUnauthorized: false } 
 });
-const promisePool = dbPool.promise(); // Use promises for clean multiple queries
+const promisePool = dbPool.promise();
 
 app.post('/api/get-dashboard-data', async (req, res) => {
     try {
         const ticket = await googleClient.verifyIdToken({ idToken: req.body.token, audience: CLIENT_ID });
         const userEmail = ticket.getPayload().email; 
 
-        // Fetch EVERYTHING at once
+        // Fetch all tables 100% dynamically
         const [profile] = await promisePool.query("SELECT * FROM student_profile WHERE email = ?", [userEmail]);
-        if (profile.length === 0) return res.status(404).json({ success: false, message: "Student not found." });
+        if (profile.length === 0) return res.status(404).json({ success: false, message: "Student not found in DB." });
 
         const [courses] = await promisePool.query("SELECT * FROM student_courses WHERE student_email = ?", [userEmail]);
         const [projects] = await promisePool.query("SELECT * FROM student_projects WHERE student_email = ?", [userEmail]);
         const [skills] = await promisePool.query("SELECT * FROM student_skills WHERE student_email = ?", [userEmail]);
         const [drives] = await promisePool.query("SELECT * FROM student_drives WHERE student_email = ?", [userEmail]);
+        
+        // Fetch Biometrics & format date
+        const [biometrics] = await promisePool.query("SELECT DATE_FORMAT(log_date, '%Y-%m-%d') as log_date, log_time, device, log_type FROM student_biometrics WHERE student_email = ? ORDER BY log_date DESC, log_time DESC", [userEmail]);
 
         res.json({ 
             success: true, 
-            profile: profile[0], courses, projects, skills, drives, 
+            profile: profile[0], courses, projects, skills, drives, biometrics, 
             picture: ticket.getPayload().picture     
         });
     } catch (error) {
