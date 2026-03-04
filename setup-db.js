@@ -7,12 +7,16 @@ const db = mysql.createConnection({
     password: 'AVNS_x5GIyjOoanVqXlKMi0w',         
     database: 'defaultdb',
     multipleStatements: true, 
-    ssl: { rejectUnauthorized: false } 
+    ssl: { rejectUnauthorized: false },
+    connectTimeout: 20000 // Added extra time for cloud handshake
 });
 
 db.connect((err) => {
-    if (err) return console.error('Failed to connect:', err.message);
-    console.log('Rebuilding Database for multiple users...');
+    if (err) {
+        console.error('Failed to connect! Are you on a Mobile Hotspot? Error:', err.message);
+        return;
+    }
+    console.log('Connected! Syncing data for Sivanagu, Abhinanthan, and Sivanague...');
 
     const masterSQL = `
         DROP TABLE IF EXISTS student_biometrics;
@@ -67,34 +71,40 @@ db.connect((err) => {
         INSERT INTO student_profile VALUES 
         ('sivanagu7771@gmail.com', 'Sivanagu E', '737624IT123', 'Information Tech', 8.92, 8.75, 120, 450, 0, 0, 3, 12, 4, 1, '8 LPA'),
         ('kvabhinanthan@gmail.com', 'Abhinathan K V', '737624IT005', 'Information Tech', 9.10, 8.90, 150, 600, 0, 1500, 1, 8, 2, 0, '0 LPA'),
-        ('sivanague.it24@bitsathy.ac.in@gmail.com', 'Sivanagu E', '737624IT123', 'Information Tech', 8.92, 8.75, 120, 450, 0, 0, 3, 12, 4, 1, '8 LPA');
+        ('sivanague@gmail.com', 'Sivanagu Personal', '737624IT999', 'Information Tech', 8.50, 8.20, 100, 300, 0, 0, 2, 5, 1, 0, '0 LPA');
 
         INSERT INTO student_courses (student_email, semester, course_code, course_name, attendance_percentage, marks, grade) VALUES 
         ('sivanagu7771@gmail.com', 4, 'CS401', 'Database Management', 88.00, 88, 'A'),
         ('sivanagu7771@gmail.com', 4, 'CS402', 'Web Architecture', 92.00, 92, 'A+'),
         ('kvabhinanthan@gmail.com', 4, 'CS401', 'Database Management', 95.00, 90, 'O'),
-        ('kvabhinanthan@gmail.com', 4, 'CS402', 'Web Architecture', 88.00, 85, 'A');
+        ('kvabhinanthan@gmail.com', 4, 'CS402', 'Web Architecture', 88.00, 85, 'A'),
+        ('sivanague@gmail.com', 4, 'CS402', 'Web Architecture', 88.00, 85, 'A'),
+        ('sivanague@gmail.com', 3, 'CS401', 'Database Management', 85.00, 82, 'A');
 
         INSERT INTO student_projects (student_email, title, status, description, tags) VALUES
         ('sivanagu7771@gmail.com', 'Worker Maintenance App', 'In Progress', 'Management App', 'Mobile'),
-        ('kvabhinanthan@gmail.com', 'AI Chatbot', 'Completed', 'ML Agent', 'AI');
+        ('kvabhinanthan@gmail.com', 'AI Chatbot', 'Completed', 'ML Agent', 'AI'),
+        ('sivanague@gmail.com', 'Student Portal', 'In Progress', 'Web Application', 'Web');
 
         INSERT INTO student_skills (student_email, name, levels, completed_levels, category, img_url) VALUES
         ('sivanagu7771@gmail.com', 'IPR', 1, 1, 'GENERAL', 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=400&q=80'),
-        ('kvabhinanthan@gmail.com', 'Python', 5, 4, 'Core', 'https://images.unsplash.com/photo-1526379095098-d400fd0bfce8?auto=format&fit=crop&w=400&q=80');
+        ('kvabhinanthan@gmail.com', 'Python', 5, 4, 'Core', 'https://images.unsplash.com/photo-1526379095098-d400fd0bfce8?auto=format&fit=crop&w=400&q=80'),
+        ('sivanague@gmail.com', 'JavaScript', 4, 3, 'Core', 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=400&q=80');
 
         INSERT INTO student_drives (student_email, company, role, drive_date, status) VALUES
         ('sivanagu7771@gmail.com', 'TCS', 'SDE', 'Mar 15', 'Registered'),
-        ('kvabhinanthan@gmail.com', 'Infosys', 'SE', 'Mar 18', 'Registered');
+        ('kvabhinanthan@gmail.com', 'Infosys', 'SE', 'Mar 18', 'Registered'),
+        ('sivanague@gmail.com', 'Wipro', 'DE', 'Mar 20', 'Registered');
 
         INSERT INTO student_biometrics (student_email, log_date, log_time, device, log_type) VALUES
         ('sivanagu7771@gmail.com', '2026-03-04', '13:05:00', 'MECH HKV3', 'IN'),
+        ('sivanague@gmail.com', '2026-03-04', '10:30:00', 'MAIN GATE', 'IN'),
         ('kvabhinanthan@gmail.com', '2026-03-04', '09:15:00', 'MAIN GATE', 'IN');
     `;
 
     db.query(masterSQL, (err) => {
-        if (err) console.error("DB Error:", err.message);
-        else console.log("SUCCESS! Both Sivanagu and Abhinanthan can now log in.");
+        if (err) console.error("DB Update Error:", err.message);
+        else console.log("SUCCESS! Database rebuilt. All three users can now log in.");
         process.exit();
     });
 });
