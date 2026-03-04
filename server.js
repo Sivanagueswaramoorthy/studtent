@@ -31,7 +31,11 @@ app.post('/api/get-dashboard-data', async (req, res) => {
         const userEmail = ticket.getPayload().email; 
 
         // Fetch all tables 100% dynamically
-        const [profile] = await promisePool.query("SELECT * FROM student_profile WHERE email = ?", [userEmail]);
+        // Replace your existing profile query with this one:
+const [profile] = await promisePool.query(
+    "SELECT * FROM student_profile WHERE LOWER(email) = LOWER(?)", 
+    [userEmail]
+);
         if (profile.length === 0) return res.status(404).json({ success: false, message: "Student not found in DB." });
 
         const [courses] = await promisePool.query("SELECT * FROM student_courses WHERE student_email = ?", [userEmail]);
