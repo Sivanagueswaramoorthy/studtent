@@ -66,7 +66,8 @@ db.connect((err) => {
         -- INSERT DATA
         INSERT INTO student_profile VALUES 
         ('sivanagu7771@gmail.com', 'Sivanagu E', '737624IT123', 'Information Tech', 8.92, 8.75, 120, 450, 0, 0, 3, 12, 4, 1, '8 LPA'),
-        ('kvabhinanthan@gmail.com', 'Abhinathan K V', '737624IT005', 'Information Tech', 9.10, 8.90, 150, 600, 0, 1500, 1, 8, 2, 0, '0 LPA');
+        ('kvabhinanthan@gmail.com', 'Abhinathan K V', '737624IT005', 'Information Tech', 9.10, 8.90, 150, 600, 0, 1500, 1, 8, 2, 0, '0 LPA'),
+        ('sivanague.it24@bitsathy.ac.in@gmail.com', 'Sivanagu E', '737624IT123', 'Information Tech', 8.92, 8.75, 120, 450, 0, 0, 3, 12, 4, 1, '8 LPA');
 
         INSERT INTO student_courses (student_email, semester, course_code, course_name, attendance_percentage, marks, grade) VALUES 
         ('sivanagu7771@gmail.com', 4, 'CS401', 'Database Management', 88.00, 88, 'A'),
