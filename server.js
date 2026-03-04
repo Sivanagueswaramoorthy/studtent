@@ -5,9 +5,7 @@ const mysql = require('mysql2');
 const path = require('path');
 
 const app = express();
-
-// 1. IMPROVED CORS: Allows your GitHub page to talk to Render
-app.use(cors({ origin: '*' })); 
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
@@ -24,30 +22,33 @@ const dbPool = mysql.createPool({
 });
 const promisePool = dbPool.promise();
 
-// 2. HEALTH CHECK: Open https://login-o753.onrender.com/health in your browser to test
+// Health Check route
 app.get('/health', (req, res) => res.json({ status: "Online", message: "Backend is reachable!" }));
 
-app.post('/api/admin/update-student', async (req, res) => {
-    const { adminToken, targetEmail, updates } = req.body;
+// Standard login route for index.html
+app.post('/api/get-dashboard-data', async (req, res) => {
     try {
-        const ticket = await googleClient.verifyIdToken({ idToken: adminToken, audience: CLIENT_ID });
-        const adminEmail = ticket.getPayload().email;
+        const ticket = await googleClient.verifyIdToken({ idToken: req.body.token, audience: CLIENT_ID });
+        const userEmail = ticket.getPayload().email; 
 
-        // AUTHENTICATION
-        const authorizedAdmins = ['sivanagu7771@gmail.com']; 
-        if (!authorizedAdmins.includes(adminEmail)) {
-            return res.status(403).json({ success: false, message: "Not an authorized admin." });
-        }
+        // Case-insensitive search
+        const [profile] = await promisePool.query("SELECT * FROM student_profile WHERE LOWER(email) = LOWER(?)", [userEmail]);
+        
+        if (profile.length === 0) return res.status(404).json({ success: false, message: "Student record not found." });
 
-        const query = `UPDATE student_profile SET cgpa=?, sgpa=?, reward_points=?, arrears=?, leaves=? WHERE LOWER(email)=LOWER(?)`;
-        await promisePool.query(query, [updates.cgpa, updates.sgpa, updates.reward, updates.arrears, updates.leaves, targetEmail]);
-
-        res.json({ success: true, message: `Database Updated for ${targetEmail}` });
+        const [courses] = await promisePool.query("SELECT * FROM student_courses WHERE student_email = ?", [profile[0].email]);
+        
+        res.json({ 
+            success: true, 
+            profile: profile[0], 
+            courses, 
+            picture: ticket.getPayload().picture     
+        });
     } catch (error) {
-        console.error("Update Error:", error);
-        res.status(500).json({ success: false, message: "Database error or Invalid Token" });
+        console.error(error);
+        res.status(500).json({ success: false, message: "Server Error during authentication." });
     }
 });
 
-const PORT = process.env.PORT || 10000; // Matches your Render log
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
