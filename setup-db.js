@@ -66,34 +66,34 @@ db.connect((err) => {
         -- INSERT DATA
         INSERT INTO student_profile VALUES 
         ('sivanagu7771@gmail.com', 'Sivanagu E', '737624IT123', 'Information Tech', 8.92, 8.75, 120, 450, 0, 0, 3, 12, 4, 1, '8 LPA'),
-        ('kvabhinathan@gmail.com', 'Abhinathan K V', '737624IT005', 'Information Tech', 9.10, 8.90, 150, 600, 0, 1500, 1, 8, 2, 0, '0 LPA');
+        ('kvabhinanthan@gmail.com', 'Abhinathan K V', '737624IT005', 'Information Tech', 9.10, 8.90, 150, 600, 0, 1500, 1, 8, 2, 0, '0 LPA');
 
         INSERT INTO student_courses (student_email, semester, course_code, course_name, attendance_percentage, marks, grade) VALUES 
         ('sivanagu7771@gmail.com', 4, 'CS401', 'Database Management', 88.00, 88, 'A'),
         ('sivanagu7771@gmail.com', 4, 'CS402', 'Web Architecture', 92.00, 92, 'A+'),
-        ('kvabhinathan@gmail.com', 4, 'CS401', 'Database Management', 95.00, 90, 'O'),
-        ('kvabhinathan@gmail.com', 4, 'CS402', 'Web Architecture', 88.00, 85, 'A');
+        ('kvabhinanthan@gmail.com', 4, 'CS401', 'Database Management', 95.00, 90, 'O'),
+        ('kvabhinanthan@gmail.com', 4, 'CS402', 'Web Architecture', 88.00, 85, 'A');
 
         INSERT INTO student_projects (student_email, title, status, description, tags) VALUES
         ('sivanagu7771@gmail.com', 'Worker Maintenance App', 'In Progress', 'Management App', 'Mobile'),
-        ('kvabhinathan@gmail.com', 'AI Chatbot', 'Completed', 'ML Agent', 'AI');
+        ('kvabhinanthan@gmail.com', 'AI Chatbot', 'Completed', 'ML Agent', 'AI');
 
         INSERT INTO student_skills (student_email, name, levels, completed_levels, category, img_url) VALUES
         ('sivanagu7771@gmail.com', 'IPR', 1, 1, 'GENERAL', 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=400&q=80'),
-        ('kvabhinathan@gmail.com', 'Python', 5, 4, 'Core', 'https://images.unsplash.com/photo-1526379095098-d400fd0bfce8?auto=format&fit=crop&w=400&q=80');
+        ('kvabhinanthan@gmail.com', 'Python', 5, 4, 'Core', 'https://images.unsplash.com/photo-1526379095098-d400fd0bfce8?auto=format&fit=crop&w=400&q=80');
 
         INSERT INTO student_drives (student_email, company, role, drive_date, status) VALUES
         ('sivanagu7771@gmail.com', 'TCS', 'SDE', 'Mar 15', 'Registered'),
-        ('kvabhinathan@gmail.com', 'Infosys', 'SE', 'Mar 18', 'Registered');
+        ('kvabhinanthan@gmail.com', 'Infosys', 'SE', 'Mar 18', 'Registered');
 
         INSERT INTO student_biometrics (student_email, log_date, log_time, device, log_type) VALUES
         ('sivanagu7771@gmail.com', '2026-03-04', '13:05:00', 'MECH HKV3', 'IN'),
-        ('kvabhinathan@gmail.com', '2026-03-04', '09:15:00', 'MAIN GATE', 'IN');
+        ('kvabhinanthan@gmail.com', '2026-03-04', '09:15:00', 'MAIN GATE', 'IN');
     `;
 
     db.query(masterSQL, (err) => {
         if (err) console.error("DB Error:", err.message);
-        else console.log("SUCCESS! Both Sivanagu and Abhinathan can now log in.");
+        else console.log("SUCCESS! Both Sivanagu and Abhinanthan can now log in.");
         process.exit();
     });
 });
