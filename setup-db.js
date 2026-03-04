@@ -62,6 +62,7 @@ db.connect((err) => {
         
         INSERT INTO student_courses (student_email, semester, course_code, course_name, attendance_percentage, grade) VALUES 
         ('sivanagu7771@gmail.com', 4, 'CS401', 'Database Management', 88.00, 'A'),
+         ('sivanagu7771@gmail.com', 4, 'CS401', 'Database Management', 88.00, 'A'),
         ('sivanagu7771@gmail.com', 4, 'CS402', 'Web Architecture', 92.00, 'A+'),
         ('sivanagu7771@gmail.com', 3, 'AI301', 'Artificial Intelligence', 96.00, 'O'),
         ('sivanagu7771@gmail.com', 3, 'DS302', 'Data Structures', 85.00, 'A');
