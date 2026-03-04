@@ -11,8 +11,8 @@ const db = mysql.createConnection({
 });
 
 db.connect((err) => {
-    if (err) return console.error('Hotspot Required! Error:', err.message);
-    console.log('Building Full-Feature Database...');
+    if (err) return console.error('FAILED! Use Hotspot. Error:', err.message);
+    console.log('Building Master Feature Database...');
 
     const masterSQL = `
         DROP TABLE IF EXISTS student_drives;
@@ -44,7 +44,7 @@ db.connect((err) => {
             course_name VARCHAR(255), 
             marks INT, 
             grade VARCHAR(5),
-            FOREIGN KEY (student_email) REFERENCES student_profile(email)
+            FOREIGN KEY (student_email) REFERENCES student_profile(email) ON DELETE CASCADE
         );
 
         CREATE TABLE student_skills (
@@ -55,27 +55,17 @@ db.connect((err) => {
             completed_levels INT,
             category VARCHAR(100),
             image_url TEXT,
-            FOREIGN KEY (student_email) REFERENCES student_profile(email)
+            FOREIGN KEY (student_email) REFERENCES student_profile(email) ON DELETE CASCADE
         );
 
-        CREATE TABLE student_drives (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            student_email VARCHAR(255),
-            company VARCHAR(100),
-            role VARCHAR(100),
-            drive_date VARCHAR(50),
-            status VARCHAR(50),
-            FOREIGN KEY (student_email) REFERENCES student_profile(email)
-        );
-
-        -- Initial Admin/Student Entry
-        INSERT INTO student_profile VALUES 
-        ('sivanagu7771@gmail.com', 'Sivanagu E', '737624IT123', 'Information Tech', 8.92, 8.75, 92.5, 450, 0, 3, 12, 4, 1, '8 LPA');
+        INSERT INTO student_profile (email, full_name, roll_no, department, cgpa, sgpa, attendance) VALUES 
+        ('sivanagu7771@gmail.com', 'Sivanagu E', '737624IT123', 'Information Tech', 8.92, 8.75, 92.5),
+        ('kvabhinanthan@gmail.com', 'Abhinanthan K V', '737624IT005', 'Information Tech', 9.10, 8.90, 95.0);
     `;
 
     db.query(masterSQL, (err) => {
         if (err) console.error("Error:", err.message);
-        else console.log("SUCCESS! Database ready for Admin Portal.");
+        else console.log("SUCCESS! Database ready for Master Admin.");
         process.exit();
     });
 });
