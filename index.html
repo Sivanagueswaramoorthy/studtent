@@ -168,50 +168,11 @@
                     </div>
                 </div>
 
-                <div class="grid-half">
-                    <div class="card" style="padding: 20px;">
+                <div style="display: flex; flex: 1; padding-bottom: 10px;">
+                    <div class="card" style="padding: 20px; flex: 1; display: flex; flex-direction: column;">
                         <div class="card-title" style="color: #1E3A8A; margin-bottom: 5px;">Semester GPA Trend</div>
                         <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px; font-weight: 500;">Historical Performance Overview</div>
                         <div style="position: relative; flex: 1; width: 100%; min-height: 200px;"><canvas id="performanceChart"></canvas></div>
-                    </div>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 20px;">
-                        <div class="card" style="padding: 20px 25px;">
-                            <div class="card-title" style="margin-bottom: 25px;">Campus Log</div>
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div style="text-align: center; flex: 1;">
-                                    <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">GATE IN</div>
-                                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--success); display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                        <i class="fa-solid fa-arrow-right-to-bracket"></i> <span id="log-gate-in">--:--</span>
-                                    </div>
-                                    <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500; margin-top: 6px;"><i class="fa-solid fa-location-dot"></i> <span id="log-in-loc">--</span></div>
-                                </div>
-                                <div style="width: 1px; height: 50px; background: #E2E8F0;"></div>
-                                <div style="text-align: center; flex: 1;">
-                                    <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">GATE OUT</div>
-                                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 8px; opacity: 0.8;">
-                                        <i class="fa-solid fa-arrow-right-from-bracket"></i> <span id="log-gate-out">--:--</span>
-                                    </div>
-                                    <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500; margin-top: 6px; opacity: 0.8;"><i class="fa-solid fa-clock"></i> <span id="log-out-loc">--</span></div>
-                                </div>
-                                <div style="width: 1px; height: 50px; background: #E2E8F0;"></div>
-                                <div style="text-align: center; flex: 1;">
-                                    <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 10px;">STATUS</div>
-                                    <span id="log-status-badge" style="background: #E2E8F0; color: var(--text-muted); padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700;">--</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="card" style="padding: 20px 25px; flex: 1;">
-                            <div class="card-title" style="margin-bottom: 15px;">Biometric Details</div>
-                            <div style="overflow-y: auto; max-height: 180px;">
-                                <table class="modern-table" style="width: 100%;">
-                                    <thead><tr><th>Date</th><th>Time</th><th>Device</th></tr></thead>
-                                    <tbody id="biometric-table-body">
-                                        </tbody>
-                                </table>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -282,8 +243,19 @@
         }
         initCharts();
 
+        // Parses the JWT token to get Google User Info manually without relying on backend payload return
+        function parseJwt (token) {
+            var base64Url = token.split('.')[1];
+            var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        }
+
         async function handleCredentialResponse(response) {
             const googleToken = response.credential;
+            const googleProfile = parseJwt(googleToken); // Get Google Info directly
             const errorMsg = document.getElementById('error-msg');
             
             try {
@@ -296,20 +268,21 @@
                 const data = await serverResponse.json();
 
                 if (data.success) {
-                    const { profile, courses, projects, skills, drives, biometrics, picture } = data;
+                    const { profile, courses, projects, skills, drives, biometrics } = data;
 
-                    // 1. Populate Profile Data Dynamic
-                    document.getElementById('userName').innerText = profile.full_name;
-                    document.getElementById('userEmail').innerText = profile.email;
-                    document.getElementById('userImage').src = picture;
+                    // TOP RIGHT: Google Account Information
+                    document.getElementById('userName').innerText = googleProfile.name;
+                    document.getElementById('userEmail').innerText = googleProfile.email;
+                    document.getElementById('userImage').src = googleProfile.picture;
                     
+                    // TOP LEFT: Database Profile Information
                     document.getElementById('cardProfileName').innerText = profile.full_name;
                     document.getElementById('cardProfileRoll').innerText = profile.roll_no || '--';
                     document.getElementById('cardProfileDept').innerText = profile.department || '--';
                     document.getElementById('cardProfileEmail').innerText = profile.email;
-                    document.getElementById('cardProfileImg').src = picture;
+                    document.getElementById('cardProfileImg').src = googleProfile.picture; // Using google pic for visual continuity
                     
-                    // 2. Populate Dashboard Stats Grid
+                    // Populate Dashboard Stats Grid
                     const cgpa = parseFloat(profile.cgpa);
                     const sgpa = parseFloat(profile.sgpa || 0);
                     document.getElementById('dash-cgpa').innerText = cgpa.toFixed(2);
@@ -326,41 +299,7 @@
                     performanceChart.data.datasets[0].data = [(cgpa-0.4).toFixed(2), (cgpa-0.2).toFixed(2), (cgpa+0.1).toFixed(2), (cgpa-0.1).toFixed(2), (cgpa+0.2).toFixed(2), cgpa.toFixed(2)];
                     performanceChart.update();
 
-                    // 3. Populate Biometric Log Dynamic
-                    if(biometrics && biometrics.length > 0) {
-                        document.getElementById('biometric-table-body').innerHTML = biometrics.map(b => `
-                            <tr>
-                                <td style="color: var(--text-main);">${b.log_date}</td>
-                                <td style="color: var(--success); font-weight: 700;">${b.log_time}</td>
-                                <td style="color: var(--success);">${b.device}</td>
-                            </tr>
-                        `).join('');
-
-                        // Calculate logic for the "Campus Log" widget based on latest IN/OUT
-                        let latestIn = biometrics.find(b => b.log_type === 'IN');
-                        let latestOut = biometrics.find(b => b.log_type === 'OUT');
-                        let statusBadge = document.getElementById('log-status-badge');
-
-                        if(latestIn) {
-                            document.getElementById('log-gate-in').innerText = latestIn.log_time;
-                            document.getElementById('log-in-loc').innerText = latestIn.device;
-                        }
-                        if(latestOut && (!latestIn || latestOut.log_time > latestIn.log_time)) {
-                            document.getElementById('log-gate-out').innerText = latestOut.log_time;
-                            document.getElementById('log-out-loc').innerText = latestOut.device;
-                            // Update Status to Off Campus
-                            statusBadge.innerText = "Off Campus";
-                            statusBadge.style.background = "#FCE8E6";
-                            statusBadge.style.color = "#D93025";
-                        } else if (latestIn) {
-                            // Update Status to On Campus
-                            statusBadge.innerText = "On Campus";
-                            statusBadge.style.background = "#E6F4EA";
-                            statusBadge.style.color = "#00B67A";
-                        }
-                    }
-
-                    // 4. Populate Projects Dynamic
+                    // Populate Projects Dynamic
                     if(projects && projects.length > 0) {
                         document.getElementById('project-container').innerHTML = projects.map(p => `
                             <div class="project-card">
@@ -370,7 +309,7 @@
                         `).join('');
                     }
 
-                    // 5. Populate Skills Dynamic
+                    // Populate Skills Dynamic
                     if(skills && skills.length > 0) {
                         document.getElementById('skills-container').innerHTML = skills.map(s => {
                             let pct = Math.round((s.completed_levels / s.levels) * 100);
@@ -378,16 +317,39 @@
                         }).join('');
                     }
 
-                    // 6. Populate Academics Dynamic
+                    // Populate Academics Dynamic
                     if(courses && courses.length > 0) {
                         let sems = {};
                         courses.forEach(c => { if(!sems[c.semester]) sems[c.semester]=[]; sems[c.semester].push(c); });
+                        
                         document.getElementById('academics-container').innerHTML = Object.keys(sems).sort((a,b)=>b-a).map(sem => `
-                            <div class="card"><div class="sem-header"><div class="sem-title">Semester ${sem}</div></div><table class="modern-table sem-table"><thead><tr><th>Subject</th><th>Marks</th><th>Grade</th></tr></thead><tbody>${sems[sem].map(c => `<tr><td>${c.course_name}</td><td style="font-weight: 700;">${c.marks || '--'} / 100</td><td><span class="badge ${c.grade.includes('A')||c.grade==='O'?'badge-success':'badge-primary'}" style="background:transparent;padding:0;">${c.grade}</span></td></tr>`).join('')}</tbody></table></div>
+                            <div class="card">
+                                <div class="sem-header">
+                                    <div class="sem-title">Semester ${sem}</div>
+                                </div>
+                                <table class="modern-table sem-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Subject</th>
+                                            <th>Marks</th>
+                                            <th>Grade</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${sems[sem].map(c => `
+                                            <tr>
+                                                <td>${c.course_name}</td>
+                                                <td style="font-weight: 700;">${c.marks !== undefined && c.marks !== null ? c.marks : '--'} / 100</td>
+                                                <td><span class="badge ${c.grade.includes('A')||c.grade==='O'?'badge-success':'badge-primary'}" style="background:transparent;padding:0;">${c.grade}</span></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
                         `).join('');
                     }
 
-                    // 7. Populate Placements
+                    // Populate Placements
                     document.getElementById('place-app').innerText = profile.placement_applied || 0;
                     document.getElementById('place-short').innerText = profile.placement_shortlisted || 0;
                     document.getElementById('place-off').innerText = profile.placement_offers || 0;

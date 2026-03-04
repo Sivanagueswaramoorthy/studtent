@@ -64,7 +64,7 @@ db.connect((err) => {
         );
 
         -- ==========================================
-        -- INSERT ALL DATA FOR SIVANAGU
+        -- 1. INSERT SIVANAGU DATA
         -- ==========================================
         INSERT INTO student_profile VALUES 
         ('sivanagu7771@gmail.com', 'Sivanagu E', '737624IT123', 'Information Tech', 8.92, 8.75, 120, 450, 0, 0, 3, 12, 4, 1, '8 LPA');
@@ -94,40 +94,38 @@ db.connect((err) => {
         ('sivanagu7771@gmail.com', '2026-03-04', '13:05:00', 'MECH HKV3', 'IN'),
         ('sivanagu7771@gmail.com', '2026-03-04', '08:32:00', 'FT HKV 4', 'IN'),
         ('sivanagu7771@gmail.com', '2026-03-03', '19:12:37', 'PEARL 1', 'OUT');
-         -- ==========================================
+
+        -- ==========================================
+        -- 2. INSERT ABHINATHAN DATA
+        -- ==========================================
         INSERT INTO student_profile VALUES 
-        ('kvabhinathan@gmail.com', 'Sivanagu E', '737624IT123', 'Information Tech', 8.92, 8.75, 120, 450, 0, 0, 3, 12, 4, 1, '8 LPA');
+        ('kvabhinathan@gmail.com', 'Abhinathan K V', '737624IT005', 'Information Tech', 9.10, 8.90, 150, 600, 0, 1500, 1, 8, 2, 0, '0 LPA');
         
         INSERT INTO student_courses (student_email, semester, course_code, course_name, attendance_percentage, marks, grade) VALUES 
-        ('kvabhinathan@gmail.com', 4, 'CS401', 'Database Management', 88.00, 88, 'A'),
-        ('kvabhinathan@gmail.com', 4, 'CS402', 'Web Architecture', 92.00, 92, 'A+'),
-        ('kvabhinathan@gmail.com', 3, 'AI301', 'Artificial Intelligence', 96.00, 96, 'O'),
-        ('kvabhinathan@gmail.com', 3, 'DS302', 'Data Structures', 85.00, 85, 'A');
+        ('kvabhinathan@gmail.com', 4, 'CS401', 'Database Management', 95.00, 90, 'O'),
+        ('kvabhinathan@gmail.com', 4, 'CS402', 'Web Architecture', 88.00, 85, 'A'),
+        ('kvabhinathan@gmail.com', 3, 'AI301', 'Artificial Intelligence', 99.00, 98, 'O'),
+        ('kvabhinathan@gmail.com', 3, 'DS302', 'Data Structures', 80.00, 78, 'B+');
 
         INSERT INTO student_projects (student_email, title, status, description, tags) VALUES
-        ('kvabhinathan@gmail.com', 'Worker Maintenance App', 'In Progress', 'Cross-platform mobile application designed for comprehensive workforce management.', 'Mobile App, Management'),
-        ('kvabhinathan@gmail.com', 'College Placement Software', 'In Progress', 'Full-stack enterprise web portal enabling seamless communication for placements.', 'Full-Stack, Database'),
-        ('kvabhinathan@gmail.com', 'Personal Portfolio Webpage', 'Completed', 'Responsive, aesthetically driven personal website built to showcase academic achievements.', 'Frontend, Design');
+        ('kvabhinathan@gmail.com', 'AI Chatbot', 'Completed', 'A machine learning based conversational agent built in Python.', 'AI, Python'),
+        ('kvabhinathan@gmail.com', 'IoT Sensor Network', 'In Progress', 'Hardware integration project for environmental monitoring.', 'IoT, Hardware');
 
         INSERT INTO student_skills (student_email, name, levels, completed_levels, category, img_url) VALUES
-        ('kvabhinathan@gmail.com', 'IPR', 1, 1, 'GENERAL Skill', 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=400&q=80'),
-        ('kvabhinathan@gmail.com', 'HTML / CSS', 1, 1, 'Software', 'https://images.unsplash.com/photo-1621839673705-6617adf9e890?auto=format&fit=crop&w=400&q=80'),
-        ('kvabhinathan@gmail.com', 'C Programming', 3, 2, 'Core', 'https://images.unsplash.com/photo-1550439062-609e1531270e?auto=format&fit=crop&w=400&q=80');
+        ('kvabhinathan@gmail.com', 'Python', 5, 4, 'Core', 'https://images.unsplash.com/photo-1526379095098-d400fd0bfce8?auto=format&fit=crop&w=400&q=80'),
+        ('kvabhinathan@gmail.com', 'Machine Learning', 3, 1, 'Advanced', 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=400&q=80');
 
         INSERT INTO student_drives (student_email, company, role, drive_date, status) VALUES
-        ('kvabhinathan@gmail.com', 'TCS', 'SDE Intern', 'Mar 15, 2026', 'Registered'),
-        ('kvabhinathan@gmail.com', 'Cognizant', 'Digital Engineer', 'Mar 22, 2026', 'Shortlisted'),
-        ('kvabhinathan@gmail.com', 'Zoho', 'Analyst', 'Apr 05, 2026', 'Not Applied');
+        ('kvabhinathan@gmail.com', 'Infosys', 'System Engineer', 'Mar 18, 2026', 'Registered'),
+        ('kvabhinathan@gmail.com', 'Wipro', 'Developer', 'Mar 25, 2026', 'Shortlisted');
 
         INSERT INTO student_biometrics (student_email, log_date, log_time, device, log_type) VALUES
-        ('kvabhinathan@gmail.com', '2026-03-04', '13:05:00', 'MECH HKV3', 'IN'),
-        ('kvabhinathan@gmail.com', '2026-03-04', '08:32:00', 'FT HKV 4', 'IN'),
-        ('kvabhinathan@gmail.com', '2026-03-03', '19:12:37', 'PEARL 1', 'OUT');
+        ('kvabhinathan@gmail.com', '2026-03-04', '09:15:00', 'MAIN GATE 1', 'IN');
     `;
 
     db.query(masterSQL, (err) => {
         if (err) console.error("DB Build Error:", err.message);
-        else console.log("SUCCESS! Database rebuilt entirely. All dynamic tables exist.");
+        else console.log("SUCCESS! Database rebuilt with correct user names.");
         process.exit();
     });
 });
