@@ -11,23 +11,13 @@
     
     <style>
         :root {
-            /* Premium Enterprise Palette */
-            --bg-app: #F8FAFC; 
-            --bg-surface: #FFFFFF; 
-            --primary: #4F46E5; 
-            --primary-hover: #4338CA;
-            --primary-light: #EEF2FF; 
-            --text-main: #0F172A; 
-            --text-muted: #64748B;
-            --border: #E2E8F0; 
-            --success: #10B981; --success-light: #D1FAE5; --success-bg: #ECFDF5;
+            --bg-app: #F8FAFC; --bg-surface: #FFFFFF; --primary: #4F46E5; --primary-hover: #4338CA;
+            --primary-light: #EEF2FF; --text-main: #0F172A; --text-muted: #64748B;
+            --border: #E2E8F0; --success: #10B981; --success-light: #D1FAE5; --success-bg: #ECFDF5;
             --danger: #EF4444; --danger-light: #FEE2E2; --danger-bg: #FEF2F2;
-            --warning: #F59E0B; --warning-light: #FEF3C7;
-            --purple: #8B5CF6; --purple-light: #EDE9FE;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05); 
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05); 
-            --radius: 12px;
+            --warning: #F59E0B; --warning-light: #FEF3C7; --purple: #8B5CF6; --purple-light: #EDE9FE;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05); --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05); --radius: 12px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
@@ -144,7 +134,7 @@
         .admin-table-edit { font-size: 0.8rem; color: #94A3B8; cursor: pointer; transition: all 0.2s ease; opacity: 0.3; padding: 6px; }
         .admin-table-edit:hover { color: var(--primary); opacity: 1 !important; transform: scale(1.1); }
         
-        .admin-table-del { color: var(--danger); cursor: pointer; transition: all 0.2s; opacity: 0.3; padding: 6px; font-size: 0.8rem; margin-left: 5px; }
+        .admin-table-del { color: var(--danger); cursor: pointer; transition: all 0.2s; opacity: 0.3; padding: 6px; font-size: 0.9rem; margin-left: 5px; }
         .admin-table-del:hover { transform: scale(1.15); opacity: 1 !important; }
 
         .detail-item:hover .admin-table-edit, .stat-box:hover .admin-table-edit, 
@@ -173,7 +163,6 @@
         
         #admin-badge { background: var(--warning-light); color: var(--warning); padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: 800; display: none; align-items: center; gap: 6px; margin-left: 16px;}
 
-        /* Modals */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 100%; max-width: 440px; border-radius: 16px; padding: 28px; box-shadow: var(--shadow-lg); animation: scaleUp 0.2s ease-out; }
         @keyframes scaleUp { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
@@ -196,15 +185,17 @@
     <aside class="sidebar">
         <div class="brand"><i class="fa-solid fa-code"></i> BIT Sathy IT</div>
         <div class="nav-menu">
-            <a class="nav-item admin-only" id="nav-dir" onclick="switchTab('directory', this)"><i class="fa-solid fa-users"></i> Staff Directory</a>
+            <a class="nav-item admin-global" id="nav-dir" onclick="switchTab('directory', this)"><i class="fa-solid fa-users"></i> Staff Directory</a>
             
-            <a class="nav-item admin-only" id="nav-col-place" onclick="switchTab('college-placement', this)"><i class="fa-solid fa-building-user"></i> College Placement</a>
+            <a class="nav-item student-nav" id="nav-back" onclick="backToDirectory()" style="color: var(--warning); background: var(--warning-light); font-weight: 800; margin-bottom: 10px; display: none;"><i class="fa-solid fa-arrow-left"></i> Back to Directory</a>
             
-            <a class="nav-item" id="nav-dash" onclick="switchTab('dashboard', this)"><i class="fa-solid fa-chart-pie"></i> Dashboard Overview</a>
-            <a class="nav-item" id="nav-act" onclick="switchTab('activities', this)"><i class="fa-solid fa-rocket"></i> PCDP Activities</a>
-            <a class="nav-item" id="nav-acad" onclick="switchTab('academics', this)"><i class="fa-solid fa-book-open"></i> Academic Records</a>
+            <a class="nav-item student-nav" id="nav-dash" onclick="switchTab('dashboard', this)" style="display: none;"><i class="fa-solid fa-chart-pie"></i> Dashboard Overview</a>
+            <a class="nav-item student-nav" id="nav-act" onclick="switchTab('activities', this)" style="display: none;"><i class="fa-solid fa-rocket"></i> PCDP Activities</a>
+            <a class="nav-item student-nav" id="nav-acad" onclick="switchTab('academics', this)" style="display: none;"><i class="fa-solid fa-book-open"></i> Academic Records</a>
             
-            <a class="nav-item" id="nav-place" onclick="switchTab('placement', this)"><i class="fa-solid fa-briefcase"></i> My Placement Hub</a>
+            <a class="nav-item admin-global" id="nav-col-place" onclick="switchTab('college-placement', this)"><i class="fa-solid fa-building-user"></i> College Placement</a>
+            
+            <a class="nav-item student-nav" id="nav-place" onclick="switchTab('placement', this)" style="display: none;"><i class="fa-solid fa-briefcase"></i> My Placement Hub</a>
         </div>
         <div class="nav-bottom">
             <a class="nav-item" style="color: var(--danger);" onclick="signOut()"><i class="fa-solid fa-power-off"></i> Secure Logout</a>
@@ -259,7 +250,7 @@
                 <div class="flex-between" style="margin-bottom: 24px; align-items: center;">
                     <div>
                         <h1 class="page-title">College Placement Analytics</h1>
-                        <p style="color: var(--text-muted); margin-top: 6px; font-size: 0.85rem;">Manage global recruitment drives and college-wide statistics.</p>
+                        <p style="color: var(--text-muted); margin-top: 6px; font-size: 0.85rem;">Global recruitment drives and college-wide statistics.</p>
                     </div>
                 </div>
 
@@ -311,7 +302,6 @@
             <div id="view-dashboard" class="view-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <h1 class="page-title">Overview</h1>
-                    <button class="action-btn btn-outline admin-only" style="font-size: 0.75rem;" onclick="backToDirectory()"><i class="fa-solid fa-arrow-left"></i> Return to Directory</button>
                 </div>
                 
                 <div class="dash-grid">
@@ -443,8 +433,8 @@
             <div id="view-placement" class="view-section">
                 <div class="flex-between" style="margin-bottom: 24px; align-items: center;">
                     <div>
-                        <h1 class="page-title">My Placement Dashboard</h1>
-                        <p style="color: var(--text-muted); margin-top: 6px; font-size: 0.85rem;">Track your personal career progress and applications.</p>
+                        <h1 class="page-title">My Placement Hub</h1>
+                        <p style="color: var(--text-muted); margin-top: 6px; font-size: 0.85rem;">Track personal career progress and applications.</p>
                     </div>
                 </div>
 
@@ -704,6 +694,31 @@
             }
         };
 
+        // --- DYNAMIC SIDEBAR VISIBILITY LOGIC ---
+        function updateSidebarNav() {
+            const adminGlobals = document.querySelectorAll('.admin-global');
+            const studentNavs = document.querySelectorAll('.student-nav');
+            const backBtn = document.getElementById('nav-back');
+
+            if (isAdminMode && targetStudentEmail === "") {
+                // Admin viewing global tools (Directory & Global Placement)
+                adminGlobals.forEach(el => el.style.display = 'flex');
+                studentNavs.forEach(el => el.style.display = 'none');
+                backBtn.style.display = 'none';
+            } else if (isAdminMode && targetStudentEmail !== "") {
+                // Admin viewing a specific student
+                adminGlobals.forEach(el => el.style.display = 'none');
+                studentNavs.forEach(el => el.style.display = 'flex');
+                backBtn.style.display = 'flex';
+            } else {
+                // Student Logged in (sees their tabs AND the global placement tab)
+                adminGlobals.forEach(el => el.style.display = 'none');
+                studentNavs.forEach(el => el.style.display = 'flex');
+                backBtn.style.display = 'none';
+                document.getElementById('nav-col-place').style.display = 'flex'; 
+            }
+        }
+
         function switchTab(tabId, element) {
             document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
             if(element) element.classList.add('active');
@@ -741,10 +756,12 @@
                     document.getElementById('admin-badge').style.display = 'flex';
 
                     setTopHeader(loggedInName, loggedInEmail, loggedInPic); 
+                    populateGlobalPlacement(currentGlobalStats, currentGlobalDrives);
 
                     if(targetStudentEmail) {
                         loadStudentData(targetStudentEmail);
                     } else {
+                        updateSidebarNav();
                         fetchDirectory();
                     }
 
@@ -759,13 +776,12 @@
                     loggedInPic = data.picture || getAvatar(loggedInName);
                     currentGlobalStats = data.globalStats; currentGlobalDrives = data.globalDrives;
                     
-                    document.getElementById('nav-dir').style.display = 'none';
-                    document.getElementById('nav-col-place').style.display = 'none'; // Hide College Placement from students
-                    
+                    updateSidebarNav();
                     setTopHeader(loggedInName, loggedInEmail, loggedInPic);
                     
                     populateDashboard(data.profile, loggedInPic, data.courses, data.skills, data.semGpas);
-                    populatePlacementHub(data.placeProfile, data.placeApps);
+                    populatePersonalPlacement(data.placeProfile, data.placeApps);
+                    populateGlobalPlacement(currentGlobalStats, currentGlobalDrives); 
                     switchTab('dashboard', document.getElementById('nav-dash'));
                 } else { 
                     localStorage.removeItem('bit_session_token');
@@ -793,7 +809,6 @@
                 depts.forEach(d => { deptSelect.innerHTML += `<option value="${d}">${d}</option>`; });
 
                 renderDirectoryTable(allStudentsList);
-                populatePlacementHub(null, null); // Render globals
                 switchTab('directory', document.getElementById('nav-dir'));
             }
         }
@@ -811,7 +826,10 @@
                     <td style="color:var(--text-muted);">${s.email}</td>
                     <td style="font-family: monospace; font-size: 0.95rem;">${s.roll_no || '--'}</td>
                     <td><span class="badge badge-primary">${s.department || '--'}</span></td>
-                    <td style="text-align: right; color: #CBD5E1; padding-right: 24px;"><i class="fa-solid fa-chevron-right"></i></td>
+                    <td style="text-align: right; color: #CBD5E1; padding-right: 24px; white-space: nowrap;">
+                        <i class="fa-solid fa-trash admin-table-del admin-only" title="Delete Student" onclick="event.stopPropagation(); deleteStudent('${s.email}')" style="margin-right: 16px; font-size: 1rem;"></i>
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </td>
                 </tr>
             `}).join('');
         }
@@ -840,14 +858,18 @@
             if (data.success) { 
                 const studentAvatar = getAvatar(data.profile.full_name);
                 populateDashboard(data.profile, studentAvatar, data.courses, data.skills, data.semGpas); 
-                populatePlacementHub(data.placeProfile, data.placeApps);
+                populatePersonalPlacement(data.placeProfile, data.placeApps);
                 
-                let activeTab = document.querySelector('.nav-item.active');
-                if(!activeTab || activeTab.id === 'nav-dir' || activeTab.id === 'nav-col-place') switchTab('dashboard', document.getElementById('nav-dash'));
+                updateSidebarNav();
+                switchTab('dashboard', document.getElementById('nav-dash'));
             }
         }
 
-        function backToDirectory() { targetStudentEmail = ""; fetchDirectory(); }
+        function backToDirectory() { 
+            targetStudentEmail = ""; 
+            updateSidebarNav();
+            fetchDirectory(); 
+        }
         function signOut() { localStorage.removeItem('bit_session_token'); location.reload(); }
 
         function quickAddCourse(semNumber) {
@@ -986,17 +1008,16 @@
         }
 
         // --- RENDER PLACEMENT HUB ---
-        function populatePlacementHub(pProfile, pApps) {
-            // Global
-            const gStats = currentGlobalStats || {};
+        function populateGlobalPlacement(gStats, gDrives) {
+            gStats = gStats || {};
             document.getElementById('val-g-total').innerText = gStats.total_placed || '0';
             document.getElementById('val-g-ongoing').innerText = gStats.ongoing_drives || '0';
             document.getElementById('val-g-highest').innerText = gStats.highest_ctc || '0';
             document.getElementById('val-g-avg').innerText = gStats.avg_ctc || '0';
 
             const drvBody = document.getElementById('global-drives-tbody');
-            if (currentGlobalDrives && currentGlobalDrives.length > 0) {
-                drvBody.innerHTML = currentGlobalDrives.map(d => `
+            if (gDrives && gDrives.length > 0) {
+                drvBody.innerHTML = gDrives.map(d => `
                 <tr id="row-drv-${d.id}">
                     <td style="font-weight: 700; color: var(--text-main);">${d.company}</td>
                     <td>${d.role}</td>
@@ -1009,47 +1030,50 @@
                     </td>
                 </tr>`).join('');
             } else { drvBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 30px; color:var(--text-muted);">No campus drives recorded.</td></tr>`; }
+        }
 
-            // Personal (Only render if looking at a student)
-            if(!pProfile) return;
+        function populatePersonalPlacement(pProfile, pApps) {
+            if(!pProfile && !isAdminMode) pProfile = {}; 
             
-            const prf = pProfile || {};
-            document.getElementById('val-p-role').innerText = prf.offer_role || '--';
-            document.getElementById('val-p-comp').innerText = prf.offer_company || '--';
-            document.getElementById('val-p-ctc').innerText = prf.offer_ctc || '--';
-            document.getElementById('val-p-status').innerText = prf.status || 'Unplaced';
-            document.getElementById('val-p-assess').innerText = prf.assessments || '0';
-            document.getElementById('val-p-int').innerText = prf.interviews || '0';
-            document.getElementById('val-p-off').innerText = prf.offers || '0';
+            if(pProfile) {
+                const prf = pProfile || {};
+                document.getElementById('val-p-role').innerText = prf.offer_role || '--';
+                document.getElementById('val-p-comp').innerText = prf.offer_company || '--';
+                document.getElementById('val-p-ctc').innerText = prf.offer_ctc || '--';
+                document.getElementById('val-p-status').innerText = prf.status || 'Unplaced';
+                document.getElementById('val-p-assess').innerText = prf.assessments || '0';
+                document.getElementById('val-p-int').innerText = prf.interviews || '0';
+                document.getElementById('val-p-off').innerText = prf.offers || '0';
 
-            const dsa = prf.tech_dsa || '0'; document.getElementById('val-t-dsa').innerText = dsa; document.getElementById('bar-t-dsa').style.width = `${dsa}%`;
-            const oop = prf.tech_oop || '0'; document.getElementById('val-t-oop').innerText = oop; document.getElementById('bar-t-oop').style.width = `${oop}%`;
-            const core = prf.tech_core || '0'; document.getElementById('val-t-core').innerText = core; document.getElementById('bar-t-core').style.width = `${core}%`;
-            const quant = prf.apt_quant || '0'; document.getElementById('val-a-quant').innerText = quant; document.getElementById('bar-a-quant').style.width = `${quant}%`;
-            const logical = prf.apt_logical || '0'; document.getElementById('val-a-log').innerText = logical; document.getElementById('bar-a-log').style.width = `${logical}%`;
-            const hr = prf.apt_hr || '0'; document.getElementById('val-a-hr').innerText = hr; document.getElementById('bar-a-hr').style.width = `${hr}%`;
+                const dsa = prf.tech_dsa || '0'; document.getElementById('val-t-dsa').innerText = dsa; document.getElementById('bar-t-dsa').style.width = `${dsa}%`;
+                const oop = prf.tech_oop || '0'; document.getElementById('val-t-oop').innerText = oop; document.getElementById('bar-t-oop').style.width = `${oop}%`;
+                const core = prf.tech_core || '0'; document.getElementById('val-t-core').innerText = core; document.getElementById('bar-t-core').style.width = `${core}%`;
+                const quant = prf.apt_quant || '0'; document.getElementById('val-a-quant').innerText = quant; document.getElementById('bar-a-quant').style.width = `${quant}%`;
+                const logical = prf.apt_logical || '0'; document.getElementById('val-a-log').innerText = logical; document.getElementById('bar-a-log').style.width = `${logical}%`;
+                const hr = prf.apt_hr || '0'; document.getElementById('val-a-hr').innerText = hr; document.getElementById('bar-a-hr').style.width = `${hr}%`;
 
-            const appBody = document.getElementById('student-apps-tbody');
-            if (pApps && pApps.length > 0) {
-                appBody.innerHTML = pApps.map(a => {
-                    let bClass = 'badge-primary';
-                    if(a.status.toLowerCase().includes('select') || a.status.toLowerCase().includes('offer')) bClass = 'badge-success';
-                    if(a.status.toLowerCase().includes('clear') || a.status.toLowerCase().includes('reject')) bClass = 'badge-danger';
-                    if(a.status.toLowerCase().includes('pend') || a.status.toLowerCase().includes('wait')) bClass = 'badge-warning';
-                    
-                    return `
-                    <tr id="row-app-${a.id}">
-                        <td style="font-weight: 700; color: var(--text-main);">${a.company}</td>
-                        <td style="color: var(--text-muted);">${a.role}</td>
-                        <td>${a.date_applied}</td>
-                        <td><span class="badge ${bClass}">${a.status}</span></td>
-                        <td class="admin-only" style="text-align:right; padding-right: 24px; white-space:nowrap;">
-                            <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="editAppRow(${a.id}, '${a.company.replace(/'/g, "\\'")}', '${a.role.replace(/'/g, "\\'")}', '${a.date_applied}', '${a.status}')"></i>
-                            <i class="fa-solid fa-trash admin-table-del admin-only" onclick="deleteApp(${a.id})"></i>
-                        </td>
-                    </tr>`;
-                }).join('');
-            } else { appBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color:var(--text-muted);">No applications logged.</td></tr>`; }
+                const appBody = document.getElementById('student-apps-tbody');
+                if (pApps && pApps.length > 0) {
+                    appBody.innerHTML = pApps.map(a => {
+                        let bClass = 'badge-primary';
+                        if(a.status.toLowerCase().includes('select') || a.status.toLowerCase().includes('offer')) bClass = 'badge-success';
+                        if(a.status.toLowerCase().includes('clear') || a.status.toLowerCase().includes('reject')) bClass = 'badge-danger';
+                        if(a.status.toLowerCase().includes('pend') || a.status.toLowerCase().includes('wait')) bClass = 'badge-warning';
+                        
+                        return `
+                        <tr id="row-app-${a.id}">
+                            <td style="font-weight: 700; color: var(--text-main);">${a.company}</td>
+                            <td style="color: var(--text-muted);">${a.role}</td>
+                            <td>${a.date_applied}</td>
+                            <td><span class="badge ${bClass}">${a.status}</span></td>
+                            <td class="admin-only" style="text-align:right; padding-right: 24px; white-space:nowrap;">
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="editAppRow(${a.id}, '${a.company.replace(/'/g, "\\'")}', '${a.role.replace(/'/g, "\\'")}', '${a.date_applied}', '${a.status}')"></i>
+                                <i class="fa-solid fa-trash admin-table-del admin-only" onclick="deleteApp(${a.id})"></i>
+                            </td>
+                        </tr>`;
+                    }).join('');
+                } else { appBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color:var(--text-muted);">No applications logged.</td></tr>`; }
+            }
         }
 
         // --- SUBMISSIONS ---
@@ -1059,6 +1083,21 @@
             const req = await fetch('https://login-o753.onrender.com/api/admin/add-student', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, email, full_name, roll_no, department }) });
             if((await req.json()).success) { closeModal('add-modal'); handleLogin({credential: globalToken}); } else alert("Failed.");
         }
+        
+        async function deleteStudent(email) {
+            if(!confirm("Are you sure you want to permanently delete this student and all their records?")) return;
+            const req = await fetch('https://login-o753.onrender.com/api/admin/delete-student', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ adminToken: globalToken, email }) 
+            });
+            if((await req.json()).success) {
+                fetchDirectory(); 
+            } else {
+                alert("Failed to delete student.");
+            }
+        }
+
         async function submitNewSkill() {
             const skill_name = document.getElementById('sk-name').value, category = document.getElementById('sk-cat').value, completed_levels = document.getElementById('sk-comp').value, total_levels = document.getElementById('sk-tot').value;
             const req = await fetch('https://login-o753.onrender.com/api/admin/add-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, skill_name, category, completed_levels, total_levels }) });
@@ -1090,9 +1129,9 @@
             if (!isAdminMode) return; const span = document.getElementById(spanId); originalValues[spanId] = span.innerText.trim();
             span.parentElement.innerHTML = `<div class="flex-center" style="width: 100%;"><input type="text" id="in-${spanId}" class="inline-input" style="width: ${width};" value="${originalValues[spanId]}"><i class="fa-solid fa-check action-icon save" onclick="saveProfileEdit('${field}', '${spanId}', '${width}')"></i><i class="fa-solid fa-xmark action-icon cancel" onclick="cancelProfileEdit('${spanId}', '${field}', '${width}')"></i></div>`;
         }
-        function cancelProfileEdit(spanId, field, width) { document.getElementById(`in-${spanId}`).parentElement.innerHTML = `<span id="${spanId}" style="${field==='email'?'word-break:break-all;':''}">${originalValues[spanId]}</span><i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openProfileEdit('${field}', '${spanId}', '${width}')"></i>`; }
+        function cancelProfileEdit(spanId, field, width) { document.getElementById(`in-${spanId}`).parentElement.parentElement.innerHTML = `<span id="${spanId}" style="${field==='email'?'word-break:break-all;':''}">${originalValues[spanId]}</span><i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openProfileEdit('${field}', '${spanId}', '${width}')"></i>`; }
         async function saveProfileEdit(field, spanId, width) {
-            const val = document.getElementById(`in-${spanId}`).value; document.getElementById(`in-${spanId}`).parentElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i>`;
+            const val = document.getElementById(`in-${spanId}`).value; document.getElementById(`in-${spanId}`).parentElement.parentElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i>`;
             const req = await fetch('https://login-o753.onrender.com/api/admin/update-field', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, field, value: val }) });
             const res = await req.json(); if (res.success) { if (field === 'email') targetStudentEmail = val; loadStudentData(targetStudentEmail); } else cancelProfileEdit(spanId, field, width);
         }

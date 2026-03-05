@@ -195,7 +195,7 @@ app.post('/api/admin/delete-app', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- SUB-TABLE ROUTES (Skills & Courses) ---
+// --- SUB-TABLE ROUTES (Skills & Courses & Students) ---
 app.post('/api/admin/add-student', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
@@ -205,6 +205,26 @@ app.post('/api/admin/add-student', async (req, res) => {
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
+
+// --- NEW: DELETE STUDENT ROUTE ---
+app.post('/api/admin/delete-student', async (req, res) => {
+    try {
+        await verifyAdmin(req.body.adminToken);
+        const email = req.body.email;
+        
+        await promisePool.query("SET FOREIGN_KEY_CHECKS=0");
+        await promisePool.query("DELETE FROM student_profile WHERE LOWER(email) = LOWER(?)", [email]);
+        await promisePool.query("DELETE FROM student_courses WHERE LOWER(student_email) = LOWER(?)", [email]);
+        await promisePool.query("DELETE FROM student_skills WHERE LOWER(student_email) = LOWER(?)", [email]);
+        await promisePool.query("DELETE FROM student_sem_gpa WHERE LOWER(student_email) = LOWER(?)", [email]);
+        await promisePool.query("DELETE FROM placement_student_profile WHERE LOWER(student_email) = LOWER(?)", [email]);
+        await promisePool.query("DELETE FROM placement_apps WHERE LOWER(student_email) = LOWER(?)", [email]);
+        await promisePool.query("SET FOREIGN_KEY_CHECKS=1");
+        
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
 app.post('/api/admin/add-skill', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
