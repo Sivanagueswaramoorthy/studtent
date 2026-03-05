@@ -22,19 +22,19 @@ const dbPool = mysql.createPool({
 });
 const promisePool = dbPool.promise();
 
-// --- NEW: AUTO-CREATE DATABASE TABLE FOR SEMESTER CGPA ---
+// --- DB AUTO-INITIALIZER (Includes New Placement Tables) ---
 (async function initializeDatabase() {
     try {
-        await promisePool.query(`
-            CREATE TABLE IF NOT EXISTS student_sem_gpa (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                student_email VARCHAR(255) NOT NULL,
-                semester INT NOT NULL,
-                gpa VARCHAR(10),
-                UNIQUE KEY unique_sem (student_email, semester)
-            )
-        `);
-        console.log("Database Verified: Semester GPA table ready.");
+        await promisePool.query(`CREATE TABLE IF NOT EXISTS student_sem_gpa (id INT AUTO_INCREMENT PRIMARY KEY, student_email VARCHAR(255) NOT NULL, semester INT NOT NULL, gpa VARCHAR(10), UNIQUE KEY unique_sem (student_email, semester))`);
+        
+        // PLACEMENT HUB TABLES
+        await promisePool.query(`CREATE TABLE IF NOT EXISTS placement_global (id INT PRIMARY KEY, total_placed VARCHAR(50), ongoing_drives VARCHAR(50), highest_ctc VARCHAR(50), avg_ctc VARCHAR(50))`);
+        await promisePool.query(`INSERT IGNORE INTO placement_global (id, total_placed, ongoing_drives, highest_ctc, avg_ctc) VALUES (1, '0', '0', '0', '0')`);
+        await promisePool.query(`CREATE TABLE IF NOT EXISTS placement_drives (id INT AUTO_INCREMENT PRIMARY KEY, company VARCHAR(255), role VARCHAR(255), appeared VARCHAR(50), selected VARCHAR(50), ctc VARCHAR(50))`);
+        await promisePool.query(`CREATE TABLE IF NOT EXISTS placement_student_profile (student_email VARCHAR(255) PRIMARY KEY, offer_role VARCHAR(255) DEFAULT '--', offer_company VARCHAR(255) DEFAULT '--', offer_ctc VARCHAR(50) DEFAULT '--', status VARCHAR(50) DEFAULT 'Unplaced', assessments VARCHAR(50) DEFAULT '0', interviews VARCHAR(50) DEFAULT '0', offers VARCHAR(50) DEFAULT '0', tech_dsa VARCHAR(50) DEFAULT '0', tech_oop VARCHAR(50) DEFAULT '0', tech_core VARCHAR(50) DEFAULT '0', apt_quant VARCHAR(50) DEFAULT '0', apt_logical VARCHAR(50) DEFAULT '0', apt_hr VARCHAR(50) DEFAULT '0')`);
+        await promisePool.query(`CREATE TABLE IF NOT EXISTS placement_apps (id INT AUTO_INCREMENT PRIMARY KEY, student_email VARCHAR(255), company VARCHAR(255), role VARCHAR(255), date_applied VARCHAR(50), status VARCHAR(50))`);
+        
+        console.log("Database Verified: Enterprise Placement tables ready.");
     } catch (err) { console.error("DB Init Error:", err.message); }
 })();
 
@@ -44,8 +44,12 @@ app.post('/api/auth', async (req, res) => {
         const ticket = await googleClient.verifyIdToken({ idToken: req.body.token, audience: CLIENT_ID });
         const email = ticket.getPayload().email;
 
+        // Fetch Global Placement Data for everyone
+        const [globalStats] = await promisePool.query("SELECT * FROM placement_global WHERE id = 1");
+        const [globalDrives] = await promisePool.query("SELECT * FROM placement_drives ORDER BY id DESC");
+
         if (email.toLowerCase() === 'sivanagu7771@gmail.com') {
-            return res.json({ success: true, isAdmin: true, profile: { full_name: ticket.getPayload().name, email: email, picture: ticket.getPayload().picture } });
+            return res.json({ success: true, isAdmin: true, profile: { full_name: ticket.getPayload().name, email: email, picture: ticket.getPayload().picture }, globalStats: globalStats[0], globalDrives });
         }
 
         const [profile] = await promisePool.query("SELECT * FROM student_profile WHERE LOWER(email) = LOWER(?)", [email]);
@@ -55,7 +59,10 @@ app.post('/api/auth', async (req, res) => {
         const [skills] = await promisePool.query("SELECT * FROM student_skills WHERE student_email = ?", [profile[0].email]);
         const [semGpas] = await promisePool.query("SELECT semester, gpa FROM student_sem_gpa WHERE student_email = ?", [profile[0].email]);
         
-        res.json({ success: true, isAdmin: false, profile: profile[0], courses, skills, semGpas, picture: ticket.getPayload().picture });
+        const [placeProfile] = await promisePool.query("SELECT * FROM placement_student_profile WHERE student_email = ?", [profile[0].email]);
+        const [placeApps] = await promisePool.query("SELECT * FROM placement_apps WHERE student_email = ? ORDER BY id DESC", [profile[0].email]);
+        
+        res.json({ success: true, isAdmin: false, profile: profile[0], courses, skills, semGpas, globalStats: globalStats[0], globalDrives, placeProfile: placeProfile[0], placeApps, picture: ticket.getPayload().picture });
     } catch (error) { res.status(500).json({ success: false, message: "Server authentication failed." }); }
 });
 
@@ -82,11 +89,14 @@ app.post('/api/admin/student-data', async (req, res) => {
         const [skills] = await promisePool.query("SELECT * FROM student_skills WHERE student_email = ?", [email]);
         const [semGpas] = await promisePool.query("SELECT semester, gpa FROM student_sem_gpa WHERE student_email = ?", [email]);
         
-        res.json({ success: true, profile: profile[0], courses, skills, semGpas });
+        const [placeProfile] = await promisePool.query("SELECT * FROM placement_student_profile WHERE student_email = ?", [email]);
+        const [placeApps] = await promisePool.query("SELECT * FROM placement_apps WHERE student_email = ? ORDER BY id DESC", [email]);
+
+        res.json({ success: true, profile: profile[0], courses, skills, semGpas, placeProfile: placeProfile[0], placeApps });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- UPDATED PROFILE EDIT (Cascades Email Changes Safely) ---
+// --- CORE PROFILE EDIT ---
 app.post('/api/admin/update-field', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
@@ -100,6 +110,8 @@ app.post('/api/admin/update-field', async (req, res) => {
             await promisePool.query(`UPDATE student_courses SET student_email = ? WHERE LOWER(student_email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
             await promisePool.query(`UPDATE student_skills SET student_email = ? WHERE LOWER(student_email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
             await promisePool.query(`UPDATE student_sem_gpa SET student_email = ? WHERE LOWER(student_email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
+            await promisePool.query(`UPDATE placement_student_profile SET student_email = ? WHERE LOWER(student_email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
+            await promisePool.query(`UPDATE placement_apps SET student_email = ? WHERE LOWER(student_email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
             await promisePool.query("SET FOREIGN_KEY_CHECKS=1");
         } else {
             await promisePool.query(`UPDATE student_profile SET ${field} = ? WHERE LOWER(email) = LOWER(?)`, [value, targetEmail]);
@@ -108,20 +120,81 @@ app.post('/api/admin/update-field', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- NEW: SEMESTER CGPA SAVE ROUTE ---
 app.post('/api/admin/update-sem-gpa', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
         const { targetEmail, semester, gpa } = req.body;
-        await promisePool.query(
-            "INSERT INTO student_sem_gpa (student_email, semester, gpa) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE gpa = VALUES(gpa)", 
-            [targetEmail.toLowerCase(), semester, gpa]
-        );
+        await promisePool.query("INSERT INTO student_sem_gpa (student_email, semester, gpa) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE gpa = VALUES(gpa)", [targetEmail.toLowerCase(), semester, gpa]);
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// Sub-tables standard routes
+// --- PLACEMENT EDIT ROUTES ---
+app.post('/api/admin/update-global-stat', async (req, res) => {
+    try {
+        await verifyAdmin(req.body.adminToken);
+        await promisePool.query(`UPDATE placement_global SET ${req.body.field} = ? WHERE id = 1`, [req.body.value]);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/admin/add-drive', async (req, res) => {
+    try {
+        await verifyAdmin(req.body.adminToken);
+        const { company, role, appeared, selected, ctc } = req.body;
+        await promisePool.query("INSERT INTO placement_drives (company, role, appeared, selected, ctc) VALUES (?, ?, ?, ?, ?)", [company, role, appeared, selected, ctc]);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+app.post('/api/admin/update-drive', async (req, res) => {
+    try {
+        await verifyAdmin(req.body.adminToken);
+        await promisePool.query(`UPDATE placement_drives SET ${req.body.field} = ? WHERE id = ?`, [req.body.value, req.body.id]);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+app.post('/api/admin/delete-drive', async (req, res) => {
+    try {
+        await verifyAdmin(req.body.adminToken);
+        await promisePool.query("DELETE FROM placement_drives WHERE id = ?", [req.body.id]);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/admin/update-placement-profile', async (req, res) => {
+    try {
+        await verifyAdmin(req.body.adminToken);
+        const { targetEmail, field, value } = req.body;
+        await promisePool.query(`INSERT IGNORE INTO placement_student_profile (student_email) VALUES (?)`, [targetEmail.toLowerCase()]);
+        await promisePool.query(`UPDATE placement_student_profile SET ${field} = ? WHERE student_email = ?`, [value, targetEmail.toLowerCase()]);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/admin/add-app', async (req, res) => {
+    try {
+        await verifyAdmin(req.body.adminToken);
+        const { targetEmail, company, role, date_applied, status } = req.body;
+        await promisePool.query("INSERT INTO placement_apps (student_email, company, role, date_applied, status) VALUES (?, ?, ?, ?, ?)", [targetEmail.toLowerCase(), company, role, date_applied, status]);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+app.post('/api/admin/update-app', async (req, res) => {
+    try {
+        await verifyAdmin(req.body.adminToken);
+        await promisePool.query(`UPDATE placement_apps SET ${req.body.field} = ? WHERE id = ?`, [req.body.value, req.body.id]);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+app.post('/api/admin/delete-app', async (req, res) => {
+    try {
+        await verifyAdmin(req.body.adminToken);
+        await promisePool.query("DELETE FROM placement_apps WHERE id = ?", [req.body.id]);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// SUB-TABLE ROUTES
 app.post('/api/admin/add-student', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
@@ -131,27 +204,20 @@ app.post('/api/admin/add-student', async (req, res) => {
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
-
 app.post('/api/admin/add-skill', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
-        const { targetEmail, skill_name, total_levels, completed_levels, category } = req.body;
-        await promisePool.query("INSERT INTO student_skills (student_email, skill_name, total_levels, completed_levels, category) VALUES (?, ?, ?, ?, ?)", [targetEmail, skill_name, total_levels, completed_levels, category]);
+        await promisePool.query("INSERT INTO student_skills (student_email, skill_name, total_levels, completed_levels, category) VALUES (?, ?, ?, ?, ?)", [req.body.targetEmail, req.body.skill_name, req.body.total_levels, req.body.completed_levels, req.body.category]);
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
-
 app.post('/api/admin/update-skill', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
-        const { id, field, value } = req.body;
-        const allowed = ['skill_name', 'completed_levels', 'total_levels', 'category'];
-        if (!allowed.includes(field)) return res.status(400).json({ success: false });
-        await promisePool.query(`UPDATE student_skills SET ${field} = ? WHERE id = ?`, [value, id]);
+        await promisePool.query(`UPDATE student_skills SET ${req.body.field} = ? WHERE id = ?`, [req.body.value, req.body.id]);
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
-
 app.post('/api/admin/delete-skill', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
@@ -159,27 +225,20 @@ app.post('/api/admin/delete-skill', async (req, res) => {
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
-
 app.post('/api/admin/add-course', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
-        const { targetEmail, semester, course_name, marks, grade } = req.body;
-        await promisePool.query("INSERT INTO student_courses (student_email, semester, course_name, marks, grade) VALUES (?, ?, ?, ?, ?)", [targetEmail, semester, course_name, marks, grade]);
+        await promisePool.query("INSERT INTO student_courses (student_email, semester, course_name, marks, grade) VALUES (?, ?, ?, ?, ?)", [req.body.targetEmail, req.body.semester, req.body.course_name, req.body.marks, req.body.grade]);
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
-
 app.post('/api/admin/update-course', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
-        const { id, field, value } = req.body;
-        const allowed = ['course_name', 'marks', 'grade'];
-        if (!allowed.includes(field)) return res.status(400).json({ success: false });
-        await promisePool.query(`UPDATE student_courses SET ${field} = ? WHERE id = ?`, [value, id]);
+        await promisePool.query(`UPDATE student_courses SET ${req.body.field} = ? WHERE id = ?`, [req.body.value, req.body.id]);
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
-
 app.post('/api/admin/delete-course', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
