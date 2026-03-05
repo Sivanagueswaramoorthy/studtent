@@ -13,8 +13,8 @@
         :root {
             --bg-app: #F4F7FE; --bg-surface: #FFFFFF; --primary: #4318FF; --primary-light: #E9E3FF;
             --purple: #7C3AED; --text-main: #2B3674; --text-muted: #8B98B4;
-            --shadow-soft: 0px 18px 40px rgba(112, 144, 176, 0.12); --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            --radius-card: 20px; --radius-pill: 50px; --success: #00B67A;
+            --shadow-soft: 0px 18px 40px rgba(112, 144, 176, 0.12); --success: #00B67A;
+            --radius-card: 20px; --radius-pill: 50px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -41,8 +41,6 @@
 
         .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; padding-right: 10px; height: 100%;}
         .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; background: var(--bg-surface); padding: 12px 24px; border-radius: var(--radius-pill); box-shadow: var(--shadow-soft); flex-shrink: 0;}
-        .search-bar { background: var(--bg-app); border-radius: var(--radius-pill); padding: 10px 20px; display: flex; align-items: center; gap: 10px; width: 300px; color: var(--text-muted);}
-        .search-bar input { border: none; background: transparent; outline: none; font-size: 0.9rem; width: 100%; color: var(--text-main);}
         .user-profile { display: flex; align-items: center; gap: 15px; }
         .profile-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
 
@@ -53,7 +51,7 @@
         /* Dashboard Components */
         .card { background: var(--bg-surface); border-radius: var(--radius-card); padding: 24px; box-shadow: var(--shadow-soft); display: flex; flex-direction: column;}
         .stat-card { background: var(--bg-surface); border-radius: var(--radius-card); padding: 20px; box-shadow: var(--shadow-soft); display: flex; flex-direction: column; justify-content: center;}
-        .stat-header { display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; margin-bottom: 10px; white-space: nowrap;}
+        .stat-header { display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; margin-bottom: 10px;}
         .icon-box { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--bg-app); color: var(--primary); flex-shrink: 0;}
         .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; }
 
@@ -61,10 +59,10 @@
         .profile-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding-bottom: 15px; border-bottom: 2px dashed #E2E8F0; margin-bottom: 15px;}
         .hero-img { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; box-shadow: var(--shadow-soft); border: 4px solid var(--primary-light);}
         .profile-details { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.95rem;}
-        .detail-item span { color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; margin-bottom: 2px; letter-spacing: 0.5px;}
+        .detail-item span { color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; margin-bottom: 2px;}
         .detail-item div { color: var(--text-main); font-weight: 800; font-size: 0.9rem;}
 
-        /* Modern Tables */
+        /* Modern Tables & Buttons */
         .modern-table { width: 100%; border-collapse: collapse; text-align: left; }
         .modern-table th { padding: 15px 12px; color: var(--text-main); font-size: 0.9rem; font-weight: 800; border-bottom: 1px solid #E2E8F0; }
         .modern-table td { padding: 18px 12px; border-bottom: 1px solid #F1F5F9; font-size: 0.95rem; font-weight: 600;}
@@ -72,8 +70,9 @@
         .badge-success { background: #E6F4EA; color: #1E8E3E; }
         .action-btn { display: block; width: 100%; text-align: center; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; border: none;}
         .btn-solid { background: var(--primary); color: white;}
+        .btn-success { background: var(--success); color: white;}
 
-        /* INLINE EDIT UI (Hidden by default) */
+        /* Admin Specifics */
         .admin-edit-pen { display: none; font-size: 0.9rem; color: #cbd5e1; cursor: pointer; margin-left: 10px; transition: 0.2s; }
         .admin-edit-pen:hover { color: var(--primary); }
         .inline-input { border: 2px solid var(--primary); border-radius: 8px; font-size: 1.1rem; font-weight: 800; width: 75px; padding: 2px 6px; outline: none; background: #F8FAFF; color: var(--primary);}
@@ -82,6 +81,11 @@
         .action-icon.cancel { color: #D93025; }
         #admin-back-btn { display: none; background: #FEF3C7; color: #D97706; padding: 10px; border-radius: 10px; font-weight: 800; text-align: center; cursor: pointer; margin-bottom: 15px; }
         #admin-badge { display: none; margin-left: 15px; background: #FEF3C7; color: #D97706; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; }
+        
+        /* Modal Add Student */
+        #add-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(5px);}
+        .modal-input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 10px; border: 2px solid #E2E8F0; font-weight: 600; font-family: 'Plus Jakarta Sans'; outline: none; transition: 0.3s;}
+        .modal-input:focus { border-color: var(--primary); }
     </style>
 </head>
 <body>
@@ -91,9 +95,7 @@
             <div class="brand-icon" style="margin: 0 auto 20px auto; width: 48px; height: 48px; font-size: 1.5rem;"><i class="fa-solid fa-graduation-cap"></i></div>
             <h2 style="margin-bottom: 10px;">BIT Portal Login</h2>
             <p style="color: var(--text-muted); margin-bottom: 30px; font-size: 0.9rem;">Sign in to access your dashboard</p>
-            <div style="display: flex; justify-content: center;">
-                <div id="g_id_signin"></div>
-            </div>
+            <div style="display: flex; justify-content: center;"><div id="g_id_signin"></div></div>
             <div id="error-msg" style="display: none; color: #D93025; margin-top: 15px; font-size: 0.9rem; font-weight: 700;"></div>
         </div>
     </div>
@@ -101,30 +103,39 @@
     <div id="dir-view">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
             <h1 style="color: var(--text-main); font-weight: 800;"><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> Staff Directory</h1>
-            <button class="action-btn btn-solid" style="width: auto; margin: 0; padding: 10px 20px;" onclick="signOut()"><i class="fa-solid fa-sign-out-alt"></i> Log Out</button>
+            <div style="display: flex; gap: 15px;">
+                <button class="action-btn btn-success" style="width: auto; margin: 0; padding: 10px 20px;" onclick="openAddModal()"><i class="fa-solid fa-user-plus"></i> Add Student</button>
+                <button class="action-btn btn-solid" style="width: auto; margin: 0; padding: 10px 20px;" onclick="signOut()"><i class="fa-solid fa-sign-out-alt"></i> Log Out</button>
+            </div>
         </div>
         <div class="card" style="padding: 0; overflow: hidden;">
             <table class="modern-table">
-                <thead style="background: #F8FAFF;">
-                    <tr><th>Student Name</th><th>Email</th><th>Roll No</th><th>Department</th></tr>
-                </thead>
+                <thead style="background: #F8FAFF;"><tr><th>Student Name</th><th>Email</th><th>Roll No</th><th>Department</th></tr></thead>
                 <tbody id="directoryBody"></tbody>
             </table>
+        </div>
+    </div>
+
+    <div id="add-modal">
+        <div class="card" style="width: 450px; max-width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h3 style="margin:0; font-weight: 800; color: var(--primary);"><i class="fa-solid fa-user-plus"></i> Register Student</h3>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.5rem; color: #cbd5e1;" onclick="closeAddModal()"></i>
+            </div>
+            <input type="email" id="new-email" class="modal-input" placeholder="Google Email (e.g. sivanague@gmail.com)">
+            <input type="text" id="new-name" class="modal-input" placeholder="Full Student Name">
+            <input type="text" id="new-roll" class="modal-input" placeholder="Roll Number (e.g. 737624IT124)">
+            <input type="text" id="new-dept" class="modal-input" placeholder="Department (e.g. Information Tech)">
+            <button class="action-btn btn-solid" onclick="submitNewStudent()" style="margin-top: 10px;"><i class="fa-solid fa-cloud-arrow-up"></i> Save to Cloud Database</button>
         </div>
     </div>
 
     <div id="app-view">
         <aside class="sidebar">
             <div class="brand"><div class="brand-icon"><i class="fa-solid fa-code"></i></div> BIT Sathy IT</div>
-            
             <div id="admin-back-btn" onclick="backToDirectory()"><i class="fa-solid fa-arrow-left"></i> Back to Directory</div>
-            
-            <div class="nav-menu">
-                <a class="nav-item active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
-            </div>
-            <div class="nav-bottom">
-                <a class="nav-item" onclick="signOut()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log Out</a>
-            </div>
+            <div class="nav-menu"><a class="nav-item active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a></div>
+            <div class="nav-bottom"><a class="nav-item" onclick="signOut()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log Out</a></div>
         </aside>
 
         <main class="main-content">
@@ -147,48 +158,21 @@
                     <div class="card" style="padding: 25px; justify-content: center;">
                         <div class="profile-hero">
                             <img id="cardProfileImg" src="" class="hero-img">
-                            <div>
-                                <h3 id="cardProfileName" style="color: var(--text-main); font-weight: 800;">--</h3>
-                                <span class="badge badge-success" style="margin-top: 5px; display: inline-block;">Active Student</span>
-                            </div>
+                            <div><h3 id="cardProfileName" style="color: var(--text-main); font-weight: 800;">--</h3><span class="badge badge-success" style="margin-top: 5px; display: inline-block;">Active Student</span></div>
                         </div>
                         <div class="profile-details">
-                            <div class="detail-item">
-                                <span>Roll Number</span>
-                                <div id="wrap-roll_no" style="display: flex; align-items: center;"><span id="val-roll_no">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('roll_no', 'val-roll_no')"></i></div>
-                            </div>
-                            <div class="detail-item">
-                                <span>Department</span>
-                                <div id="wrap-department" style="display: flex; align-items: center;"><span id="val-department">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('department', 'val-department')"></i></div>
-                            </div>
+                            <div class="detail-item"><span>Roll Number</span><div id="wrap-roll_no" style="display: flex; align-items: center;"><span id="val-roll_no">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('roll_no', 'val-roll_no')"></i></div></div>
+                            <div class="detail-item"><span>Department</span><div id="wrap-department" style="display: flex; align-items: center;"><span id="val-department">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('department', 'val-department')"></i></div></div>
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                        <div class="stat-card">
-                            <div class="stat-header"><div class="icon-box"><i class="fa-solid fa-graduation-cap"></i></div> CGPA</div>
-                            <div class="stat-value" id="wrap-cgpa"><span id="val-cgpa">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('cgpa', 'val-cgpa')"></i></div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-header"><div class="icon-box"><i class="fa-solid fa-chart-line"></i></div> SGPA</div>
-                            <div class="stat-value" id="wrap-sgpa"><span id="val-sgpa">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('sgpa', 'val-sgpa')"></i></div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-header"><div class="icon-box"><i class="fa-solid fa-user-check"></i></div> Attendance</div>
-                            <div class="stat-value" id="wrap-attendance"><span id="val-attendance">--</span><span style="font-size: 1rem; margin-left:2px;">%</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('attendance', 'val-attendance')"></i></div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-header"><div class="icon-box" style="background: #FEF3C7; color: #D97706;"><i class="fa-solid fa-star"></i></div> Reward Pts</div>
-                            <div class="stat-value" id="wrap-reward_points"><span id="val-reward_points">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('reward_points', 'val-reward_points')"></i></div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-header"><div class="icon-box" style="color: #D93025; background: #FCE8E6;"><i class="fa-solid fa-triangle-exclamation"></i></div> Arrears</div>
-                            <div class="stat-value" id="wrap-arrears"><span id="val-arrears">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('arrears', 'val-arrears')"></i></div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-header"><div class="icon-box" style="color: #8B5CF6; background: #F3E8FF;"><i class="fa-solid fa-calendar-xmark"></i></div> Leaves</div>
-                            <div class="stat-value" id="wrap-leaves"><span id="val-leaves">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('leaves', 'val-leaves')"></i></div>
-                        </div>
+                        <div class="stat-card"><div class="stat-header"><div class="icon-box"><i class="fa-solid fa-graduation-cap"></i></div> CGPA</div><div class="stat-value" id="wrap-cgpa"><span id="val-cgpa">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('cgpa', 'val-cgpa')"></i></div></div>
+                        <div class="stat-card"><div class="stat-header"><div class="icon-box"><i class="fa-solid fa-chart-line"></i></div> SGPA</div><div class="stat-value" id="wrap-sgpa"><span id="val-sgpa">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('sgpa', 'val-sgpa')"></i></div></div>
+                        <div class="stat-card"><div class="stat-header"><div class="icon-box"><i class="fa-solid fa-user-check"></i></div> Attendance</div><div class="stat-value" id="wrap-attendance"><span id="val-attendance">--</span><span style="font-size: 1rem; margin-left:2px;">%</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('attendance', 'val-attendance')"></i></div></div>
+                        <div class="stat-card"><div class="stat-header"><div class="icon-box" style="background: #FEF3C7; color: #D97706;"><i class="fa-solid fa-star"></i></div> Reward Pts</div><div class="stat-value" id="wrap-reward_points"><span id="val-reward_points">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('reward_points', 'val-reward_points')"></i></div></div>
+                        <div class="stat-card"><div class="stat-header"><div class="icon-box" style="color: #D93025; background: #FCE8E6;"><i class="fa-solid fa-triangle-exclamation"></i></div> Arrears</div><div class="stat-value" id="wrap-arrears"><span id="val-arrears">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('arrears', 'val-arrears')"></i></div></div>
+                        <div class="stat-card"><div class="stat-header"><div class="icon-box" style="color: #8B5CF6; background: #F3E8FF;"><i class="fa-solid fa-calendar-xmark"></i></div> Leaves</div><div class="stat-value" id="wrap-leaves"><span id="val-leaves">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('leaves', 'val-leaves')"></i></div></div>
                     </div>
                 </div>
             </div>
@@ -206,10 +190,10 @@
             google.accounts.id.renderButton(document.getElementById("g_id_signin"), { theme: "filled_blue", size: "large", shape: "pill" });
         };
 
-        // 1. SMART LOGIN HANDLER
         async function handleLogin(response) {
             globalToken = response.credential;
             const errBox = document.getElementById('error-msg');
+            errBox.style.display = 'none';
             
             try {
                 const req = await fetch('https://login-o753.onrender.com/api/auth', {
@@ -223,7 +207,10 @@
                     document.getElementById('headerEmail').innerText = data.profile.email;
                     document.getElementById('headerImage').src = data.profile.picture;
                     
-                    document.styleSheets[0].insertRule('.admin-edit-pen { display: inline-block !important; }', 0);
+                    const adminStyle = document.createElement('style');
+                    adminStyle.innerHTML = '.admin-edit-pen { display: inline-block !important; }';
+                    document.head.appendChild(adminStyle);
+
                     document.getElementById('admin-back-btn').style.display = 'block';
                     document.getElementById('admin-badge').style.display = 'flex';
 
@@ -233,19 +220,13 @@
                     document.getElementById('headerName').innerText = data.profile.full_name;
                     document.getElementById('headerEmail').innerText = data.profile.email;
                     document.getElementById('headerImage').src = data.picture || 'https://via.placeholder.com/40';
-                    
                     populateDashboard(data.profile, data.picture);
                     switchView('app-view');
-                } else {
-                    errBox.innerText = data.message; errBox.style.display = 'block';
-                }
-            } catch (e) {
-                console.error(e);
-                errBox.innerText = "Server Connection Failed. Please ensure your backend is updated."; errBox.style.display = 'block';
-            }
+                } else { errBox.innerText = data.message; errBox.style.display = 'block'; }
+            } catch (e) { errBox.innerText = "Server Connection Failed."; errBox.style.display = 'block'; }
         }
 
-        // 2. ADMIN DIRECTORY LOGIC
+        // --- DIRECTORY & ADD STUDENT LOGIC ---
         async function fetchDirectory() {
             const req = await fetch('https://login-o753.onrender.com/api/admin/list', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken })
@@ -254,14 +235,37 @@
             if (data.success) {
                 document.getElementById('directoryBody').innerHTML = data.students.map(s => `
                     <tr class="dir-row" onclick="loadStudentData('${s.email}')">
-                        <td style="font-weight:800;">${s.full_name}</td>
-                        <td style="color:var(--primary);">${s.email}</td>
-                        <td>${s.roll_no || '--'}</td>
-                        <td>${s.department || '--'}</td>
+                        <td style="font-weight:800;">${s.full_name}</td><td style="color:var(--primary);">${s.email}</td>
+                        <td>${s.roll_no || '--'}</td><td>${s.department || '--'}</td>
                     </tr>
                 `).join('');
                 switchView('dir-view');
             }
+        }
+
+        function openAddModal() { document.getElementById('add-modal').style.display = 'flex'; }
+        function closeAddModal() { document.getElementById('add-modal').style.display = 'none'; }
+        
+        async function submitNewStudent() {
+            const email = document.getElementById('new-email').value;
+            const full_name = document.getElementById('new-name').value;
+            const roll_no = document.getElementById('new-roll').value;
+            const department = document.getElementById('new-dept').value;
+
+            if(!email || !full_name) return alert("Email and Name are required fields.");
+
+            const req = await fetch('https://login-o753.onrender.com/api/admin/add-student', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminToken: globalToken, email, full_name, roll_no, department })
+            });
+            const res = await req.json();
+            if(res.success) {
+                alert("Student Added! They can now log in securely.");
+                document.getElementById('new-email').value = ''; document.getElementById('new-name').value = '';
+                document.getElementById('new-roll').value = ''; document.getElementById('new-dept').value = '';
+                closeAddModal();
+                fetchDirectory(); // Refresh the table
+            } else alert("Failed to add student.");
         }
 
         async function loadStudentData(email) {
@@ -271,19 +275,15 @@
                 body: JSON.stringify({ adminToken: globalToken, targetEmail: email })
             });
             const data = await req.json();
-            if (data.success) {
-                populateDashboard(data.profile, 'https://via.placeholder.com/110');
-                switchView('app-view');
-            }
+            if (data.success) { populateDashboard(data.profile, 'https://via.placeholder.com/110'); switchView('app-view'); }
         }
 
         function backToDirectory() { switchView('dir-view'); }
 
-        // 3. UI POPULATION & UTILS
+        // --- DASHBOARD UI & INLINE EDITING ---
         function populateDashboard(p, img) {
             document.getElementById('cardProfileName').innerText = p.full_name;
             document.getElementById('cardProfileImg').src = img || 'https://via.placeholder.com/110';
-            
             document.getElementById('val-roll_no').innerText = p.roll_no || '--';
             document.getElementById('val-department').innerText = p.department || '--';
             document.getElementById('val-cgpa').innerText = parseFloat(p.cgpa).toFixed(2);
@@ -304,24 +304,16 @@
 
         function signOut() { location.reload(); }
 
-        // 4. INLINE EDIT LOGIC (Admin Only)
         function openEdit(field, spanId) {
             if (!isAdminMode) return;
             const span = document.getElementById(spanId);
             const parent = span.parentElement;
-            
             originalValues[field] = span.innerText.trim();
-            
-            parent.innerHTML = `
-                <input type="text" id="in-${field}" class="inline-input" value="${originalValues[field]}">
-                <i class="fa-solid fa-circle-check action-icon save" onclick="saveEdit('${field}', '${spanId}')"></i>
-                <i class="fa-solid fa-circle-xmark action-icon cancel" onclick="cancelEdit('${field}', '${spanId}')"></i>
-            `;
+            parent.innerHTML = `<input type="text" id="in-${field}" class="inline-input" value="${originalValues[field]}"><i class="fa-solid fa-circle-check action-icon save" onclick="saveEdit('${field}', '${spanId}')"></i><i class="fa-solid fa-circle-xmark action-icon cancel" onclick="cancelEdit('${field}', '${spanId}')"></i>`;
         }
 
         function cancelEdit(field, spanId) {
-            const parent = document.getElementById(`in-${field}`).parentElement;
-            parent.innerHTML = `<span id="${spanId}">${originalValues[field]}</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('${field}', '${spanId}')"></i>`;
+            document.getElementById(`in-${field}`).parentElement.innerHTML = `<span id="${spanId}">${originalValues[field]}</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('${field}', '${spanId}')"></i>`;
         }
 
         async function saveEdit(field, spanId) {
@@ -331,17 +323,14 @@
 
             const req = await fetch('https://login-o753.onrender.com/api/admin/update-field', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, field: field, value: val })
+                body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, field, value: val })
             });
             const res = await req.json();
             
             if (res.success) {
                 const displayVal = field.includes('gpa') ? parseFloat(val).toFixed(2) : val;
                 parent.innerHTML = `<span id="${spanId}">${displayVal}</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('${field}', '${spanId}')"></i>`;
-            } else {
-                alert("Update failed. Check inputs.");
-                cancelEdit(field, spanId);
-            }
+            } else { alert("Update failed."); cancelEdit(field, spanId); }
         }
     </script>
 </body>
