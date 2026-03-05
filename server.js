@@ -22,9 +22,23 @@ const dbPool = mysql.createPool({
 });
 const promisePool = dbPool.promise();
 
-// ==========================================
-// 1. SMART LOGIN ROUTE
-// ==========================================
+// --- NEW: AUTO-CREATE DATABASE TABLE FOR SEMESTER CGPA ---
+(async function initializeDatabase() {
+    try {
+        await promisePool.query(`
+            CREATE TABLE IF NOT EXISTS student_sem_gpa (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                student_email VARCHAR(255) NOT NULL,
+                semester INT NOT NULL,
+                gpa VARCHAR(10),
+                UNIQUE KEY unique_sem (student_email, semester)
+            )
+        `);
+        console.log("Database Verified: Semester GPA table ready.");
+    } catch (err) { console.error("DB Init Error:", err.message); }
+})();
+
+// --- SMART LOGIN ---
 app.post('/api/auth', async (req, res) => {
     try {
         const ticket = await googleClient.verifyIdToken({ idToken: req.body.token, audience: CLIENT_ID });
@@ -39,14 +53,12 @@ app.post('/api/auth', async (req, res) => {
 
         const [courses] = await promisePool.query("SELECT * FROM student_courses WHERE student_email = ? ORDER BY semester ASC", [profile[0].email]);
         const [skills] = await promisePool.query("SELECT * FROM student_skills WHERE student_email = ?", [profile[0].email]);
+        const [semGpas] = await promisePool.query("SELECT semester, gpa FROM student_sem_gpa WHERE student_email = ?", [profile[0].email]);
         
-        res.json({ success: true, isAdmin: false, profile: profile[0], courses, skills, picture: ticket.getPayload().picture });
+        res.json({ success: true, isAdmin: false, profile: profile[0], courses, skills, semGpas, picture: ticket.getPayload().picture });
     } catch (error) { res.status(500).json({ success: false, message: "Server authentication failed." }); }
 });
 
-// ==========================================
-// 2. ADMIN SECURE ROUTES
-// ==========================================
 async function verifyAdmin(token) {
     const ticket = await googleClient.verifyIdToken({ idToken: token, audience: CLIENT_ID });
     if (ticket.getPayload().email.toLowerCase() !== 'sivanagu7771@gmail.com') throw new Error("Unauthorized");
@@ -64,24 +76,52 @@ app.post('/api/admin/list', async (req, res) => {
 app.post('/api/admin/student-data', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
-        const [profile] = await promisePool.query("SELECT * FROM student_profile WHERE LOWER(email) = LOWER(?)", [req.body.targetEmail]);
-        const [courses] = await promisePool.query("SELECT * FROM student_courses WHERE student_email = ? ORDER BY semester ASC", [req.body.targetEmail]);
-        const [skills] = await promisePool.query("SELECT * FROM student_skills WHERE student_email = ?", [req.body.targetEmail]);
-        res.json({ success: true, profile: profile[0], courses, skills });
+        const email = req.body.targetEmail;
+        const [profile] = await promisePool.query("SELECT * FROM student_profile WHERE LOWER(email) = LOWER(?)", [email]);
+        const [courses] = await promisePool.query("SELECT * FROM student_courses WHERE student_email = ? ORDER BY semester ASC", [email]);
+        const [skills] = await promisePool.query("SELECT * FROM student_skills WHERE student_email = ?", [email]);
+        const [semGpas] = await promisePool.query("SELECT semester, gpa FROM student_sem_gpa WHERE student_email = ?", [email]);
+        
+        res.json({ success: true, profile: profile[0], courses, skills, semGpas });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
+// --- UPDATED PROFILE EDIT (Cascades Email Changes Safely) ---
 app.post('/api/admin/update-field', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
         const { targetEmail, field, value } = req.body;
-        const allowed = ['full_name', 'roll_no', 'department', 'cgpa', 'sgpa', 'attendance', 'reward_points', 'arrears', 'leaves'];
+        const allowed = ['email', 'full_name', 'roll_no', 'department', 'cgpa', 'sgpa', 'attendance', 'reward_points', 'arrears', 'leaves'];
         if (!allowed.includes(field)) return res.status(400).json({ success: false });
-        await promisePool.query(`UPDATE student_profile SET ${field} = ? WHERE LOWER(email) = LOWER(?)`, [value, targetEmail]);
+
+        if (field === 'email') {
+            await promisePool.query("SET FOREIGN_KEY_CHECKS=0");
+            await promisePool.query(`UPDATE student_profile SET email = ? WHERE LOWER(email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
+            await promisePool.query(`UPDATE student_courses SET student_email = ? WHERE LOWER(student_email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
+            await promisePool.query(`UPDATE student_skills SET student_email = ? WHERE LOWER(student_email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
+            await promisePool.query(`UPDATE student_sem_gpa SET student_email = ? WHERE LOWER(student_email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
+            await promisePool.query("SET FOREIGN_KEY_CHECKS=1");
+        } else {
+            await promisePool.query(`UPDATE student_profile SET ${field} = ? WHERE LOWER(email) = LOWER(?)`, [value, targetEmail]);
+        }
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
+// --- NEW: SEMESTER CGPA SAVE ROUTE ---
+app.post('/api/admin/update-sem-gpa', async (req, res) => {
+    try {
+        await verifyAdmin(req.body.adminToken);
+        const { targetEmail, semester, gpa } = req.body;
+        await promisePool.query(
+            "INSERT INTO student_sem_gpa (student_email, semester, gpa) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE gpa = VALUES(gpa)", 
+            [targetEmail.toLowerCase(), semester, gpa]
+        );
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// Sub-tables standard routes
 app.post('/api/admin/add-student', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
@@ -92,7 +132,6 @@ app.post('/api/admin/add-student', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- NEW: ACTIVITIES (SKILLS) ROUTES ---
 app.post('/api/admin/add-skill', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
@@ -121,7 +160,6 @@ app.post('/api/admin/delete-skill', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- NEW: ACADEMICS (COURSES) ROUTES ---
 app.post('/api/admin/add-course', async (req, res) => {
     try {
         await verifyAdmin(req.body.adminToken);
