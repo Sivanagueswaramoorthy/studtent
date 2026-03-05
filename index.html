@@ -73,6 +73,11 @@
         .btn-solid { background: var(--primary); color: white;}
         .btn-success { background: var(--success); color: white;}
 
+        /* Premium Refresh Button */
+        .refresh-btn { background: var(--bg-app); border: 1px solid #E2E8F0; color: var(--text-main); padding: 8px 16px; border-radius: 12px; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; }
+        .refresh-btn:hover { background: var(--primary-light); color: var(--primary); border-color: var(--primary-light); }
+        .refresh-btn:hover i { transform: rotate(180deg); transition: transform 0.4s ease; }
+
         /* Activities & Academics Grids */
         .ps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .ps-card { background: white; border-radius: 12px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; position: relative;}
@@ -81,7 +86,7 @@
         .ps-title { font-weight: 800; font-size: 1.1rem; margin-bottom: 15px; color: var(--text-main); }
         .ps-meta { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); font-weight: 700; margin-bottom: 15px; align-items: center;}
         .ps-progress-bg { height: 6px; background: #E2E8F0; border-radius: 3px; margin-bottom: 8px;}
-        .ps-progress-fill { height: 100%; background: var(--purple); border-radius: 3px;}
+        .ps-progress-fill { height: 100%; background: var(--purple); border-radius: 3px; transition: width 0.5s ease;}
         .semester-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px;}
         .sem-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #E2E8F0;}
         .sem-title { font-size: 1.2rem; font-weight: 800; color: var(--text-main);}
@@ -122,6 +127,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
             <h1 style="color: var(--text-main); font-weight: 800;"><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> Staff Directory</h1>
             <div style="display: flex; gap: 15px;">
+                <button class="refresh-btn" onclick="location.reload()"><i class="fa-solid fa-arrows-rotate"></i> Sync Data</button>
                 <button class="action-btn btn-success" style="width: auto; margin: 0; padding: 10px 20px;" onclick="openModal('add-modal')"><i class="fa-solid fa-user-plus"></i> Add Student</button>
                 <button class="action-btn btn-solid" style="width: auto; margin: 0; padding: 10px 20px;" onclick="signOut()"><i class="fa-solid fa-sign-out-alt"></i> Log Out</button>
             </div>
@@ -151,7 +157,8 @@
         <main class="main-content">
             <header class="top-nav">
                 <div style="display: flex; align-items: center;">
-                    <h3 style="font-weight: 800;">Student Overview</h3>
+                    <h3 style="font-weight: 800; margin: 0; margin-right: 15px;">Student Overview</h3>
+                    <button class="refresh-btn" onclick="location.reload()"><i class="fa-solid fa-arrows-rotate"></i> Refresh Data</button>
                     <div id="admin-badge"><i class="fa-solid fa-pen-to-square"></i> EDIT MODE</div>
                 </div>
                 <div class="user-profile">
@@ -175,6 +182,7 @@
                             <div class="detail-item"><span>Department</span><div id="wrap-department" style="display: flex; align-items: center;"><span id="val-department">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openProfileEdit('department', 'val-department')"></i></div></div>
                         </div>
                     </div>
+
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
                         <div class="stat-card"><div class="stat-header"><div class="icon-box"><i class="fa-solid fa-graduation-cap"></i></div> CGPA</div><div class="stat-value" id="wrap-cgpa"><span id="val-cgpa">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openProfileEdit('cgpa', 'val-cgpa')"></i></div></div>
                         <div class="stat-card"><div class="stat-header"><div class="icon-box"><i class="fa-solid fa-chart-line"></i></div> SGPA</div><div class="stat-value" id="wrap-sgpa"><span id="val-sgpa">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openProfileEdit('sgpa', 'val-sgpa')"></i></div></div>
@@ -198,7 +206,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 25px;">
                     <div><h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main);">Academic Transcript</h2></div>
                     <div style="display: flex; gap: 10px;">
-                        <button class="badge badge-success admin-only-btn" style="border:none; cursor:pointer; padding: 10px 20px; font-size: 0.9rem;" onclick="openModal('add-course-modal')"><i class="fa-solid fa-plus"></i> Add Course</button>
+                        <button class="badge badge-success admin-only-btn" style="border:none; cursor:pointer; padding: 10px 20px; font-size: 0.9rem;" onclick="openModal('add-course-modal')"><i class="fa-solid fa-plus"></i> Add Semester/Course</button>
                         <button class="badge badge-primary" style="border:none; cursor:pointer; padding: 10px 20px; font-size: 0.9rem;"><i class="fa-solid fa-download"></i> Download PDF</button>
                     </div>
                 </div>
@@ -249,11 +257,11 @@
                 <input type="number" id="crs-mark" class="modal-input" placeholder="Marks (out of 100)">
                 <input type="text" id="crs-grade" class="modal-input" placeholder="Grade (e.g., A)">
             </div>
-            <button class="action-btn btn-solid" onclick="submitNewCourse()">Add Course</button>
+            <button class="action-btn btn-solid" onclick="submitNewCourse()">Save Course</button>
         </div>
     </div>
 
-<script>
+    <script>
         let globalToken = "";
         let isAdminMode = false;
         let targetStudentEmail = "";
@@ -263,15 +271,13 @@
             google.accounts.id.initialize({ client_id: "318717217301-kot0gq3l7amhtfphhvsbjh4ehau9heb4.apps.googleusercontent.com", callback: handleLogin });
             google.accounts.id.renderButton(document.getElementById("g_id_signin"), { theme: "filled_blue", size: "large", shape: "pill" });
 
-            // --- NEW: AUTO-LOGIN ON REFRESH ---
+            // Auto-login on Page Refresh
             const savedToken = localStorage.getItem('bit_session_token');
             if (savedToken) {
-                // If a session exists, automatically attempt to log in using it
                 document.getElementById('g_id_signin').style.display = 'none';
                 document.getElementById('error-msg').style.color = 'var(--text-main)';
                 document.getElementById('error-msg').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Syncing live data...';
                 document.getElementById('error-msg').style.display = 'block';
-                
                 handleLogin({ credential: savedToken });
             }
         };
@@ -297,10 +303,8 @@
                 const data = await req.json();
 
                 if (data.isAdmin) {
-                    // SAVE SESSION
                     localStorage.setItem('bit_session_token', globalToken);
                     errBox.style.display = 'none';
-
                     isAdminMode = true;
                     document.getElementById('headerName').innerText = data.profile.full_name;
                     document.getElementById('headerEmail').innerText = data.profile.email;
@@ -313,12 +317,16 @@
                     document.getElementById('admin-back-btn').style.display = 'block';
                     document.getElementById('admin-badge').style.display = 'flex';
 
-                    fetchDirectory();
+                    // If a specific student was being viewed, reload them instead of directory
+                    if(targetStudentEmail) {
+                        loadStudentData(targetStudentEmail);
+                    } else {
+                        fetchDirectory();
+                    }
+
                 } else if (data.success) {
-                    // SAVE SESSION
                     localStorage.setItem('bit_session_token', globalToken);
                     errBox.style.display = 'none';
-
                     isAdminMode = false;
                     document.getElementById('headerName').innerText = data.profile.full_name;
                     document.getElementById('headerEmail').innerText = data.profile.email;
@@ -328,20 +336,14 @@
                     switchView('app-view');
                     switchTab('dashboard', document.querySelectorAll('.nav-item')[0]);
                 } else { 
-                    // Clear broken session
                     localStorage.removeItem('bit_session_token');
                     document.getElementById('g_id_signin').style.display = 'block';
-                    errBox.style.color = '#D93025';
-                    errBox.innerText = data.message; 
-                    errBox.style.display = 'block'; 
+                    errBox.style.color = '#D93025'; errBox.innerText = data.message; errBox.style.display = 'block'; 
                 }
             } catch (e) { 
-                // Clear expired session
                 localStorage.removeItem('bit_session_token');
                 document.getElementById('g_id_signin').style.display = 'block';
-                errBox.style.color = '#D93025';
-                errBox.innerText = "Session expired or Connection Failed. Please log in again."; 
-                errBox.style.display = 'block'; 
+                errBox.style.color = '#D93025'; errBox.innerText = "Connection Failed. Please log in again."; errBox.style.display = 'block'; 
             }
         }
 
@@ -371,17 +373,23 @@
             if (data.success) { 
                 populateDashboard(data.profile, 'https://via.placeholder.com/110', data.courses, data.skills); 
                 switchView('app-view'); 
-                switchTab('dashboard', document.querySelectorAll('.nav-item')[0]);
+                
+                // Only switch to dashboard tab if no tab is currently active
+                let activeTab = document.querySelector('.nav-item.active');
+                if(!activeTab) switchTab('dashboard', document.querySelectorAll('.nav-item')[0]);
             }
         }
 
-        function reloadCurrentStudent() { loadStudentData(targetStudentEmail); }
-        function backToDirectory() { switchView('dir-view'); }
-        
-        // --- LOGOUT ROUTINE ---
-        function signOut() { 
-            localStorage.removeItem('bit_session_token'); // Clear session
-            location.reload(); // Reload to show login screen
+        function backToDirectory() { targetStudentEmail = ""; switchView('dir-view'); }
+        function signOut() { localStorage.removeItem('bit_session_token'); location.reload(); }
+
+        // QUICK ADD SUBJECT (Pre-fills Semester)
+        function quickAddCourse(semNumber) {
+            document.getElementById('crs-sem').value = semNumber;
+            document.getElementById('crs-name').value = '';
+            document.getElementById('crs-mark').value = '';
+            document.getElementById('crs-grade').value = '';
+            openModal('add-course-modal');
         }
 
         // --- DASHBOARD UI POPULATION ---
@@ -423,13 +431,18 @@
                 }).join('');
             } else { document.getElementById('skills-container').innerHTML = `<p style="color:var(--text-muted);">No PCDP activities logged yet.</p>`; }
 
-            // Render Courses (Semester Wise)
+            // Render Courses with Quick Add Button
             if(courses && courses.length > 0) {
                 let sems = {};
                 courses.forEach(c => { if(!sems[c.semester]) sems[c.semester]=[]; sems[c.semester].push(c); });
                 document.getElementById('academics-container').innerHTML = Object.keys(sems).sort((a,b)=>b-a).map(sem => `
                     <div class="card" style="padding: 0; overflow: hidden;">
-                        <div class="sem-header" style="padding: 20px; margin: 0; background: #F8FAFF;"><div class="sem-title">Semester ${sem}</div></div>
+                        <div class="sem-header" style="padding: 20px; margin: 0; background: #F8FAFF;">
+                            <div class="sem-title">Semester ${sem}</div>
+                            <button class="badge badge-success admin-only-btn" style="border:none; cursor:pointer; padding: 6px 12px;" onclick="quickAddCourse(${sem})">
+                                <i class="fa-solid fa-plus"></i> Add Subject
+                            </button>
+                        </div>
                         <table class="modern-table sem-table">
                             <thead><tr><th>Subject</th><th>Marks</th><th>Grade</th><th></th></tr></thead>
                             <tbody>${sems[sem].map(c => `<tr>
@@ -457,36 +470,36 @@
             const email = document.getElementById('new-email').value, full_name = document.getElementById('new-name').value, roll_no = document.getElementById('new-roll').value, department = document.getElementById('new-dept').value;
             if(!email || !full_name) return alert("Email and Name are required.");
             const req = await fetch('https://login-o753.onrender.com/api/admin/add-student', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, email, full_name, roll_no, department }) });
-            if((await req.json()).success) { closeModal('add-modal'); fetchDirectory(); } else alert("Failed.");
+            if((await req.json()).success) { closeModal('add-modal'); handleLogin({credential: globalToken}); } else alert("Failed.");
         }
 
         async function submitNewSkill() {
             const skill_name = document.getElementById('sk-name').value, category = document.getElementById('sk-cat').value, completed_levels = document.getElementById('sk-comp').value, total_levels = document.getElementById('sk-tot').value;
             if(!skill_name) return alert("Skill name required.");
             const req = await fetch('https://login-o753.onrender.com/api/admin/add-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, skill_name, category, completed_levels, total_levels }) });
-            if((await req.json()).success) { closeModal('add-skill-modal'); reloadCurrentStudent(); } else alert("Failed.");
+            if((await req.json()).success) { closeModal('add-skill-modal'); handleLogin({credential: globalToken}); } else alert("Failed.");
         }
 
         async function submitNewCourse() {
             const semester = document.getElementById('crs-sem').value, course_name = document.getElementById('crs-name').value, marks = document.getElementById('crs-mark').value, grade = document.getElementById('crs-grade').value;
             if(!course_name || !semester) return alert("Semester and Course name required.");
             const req = await fetch('https://login-o753.onrender.com/api/admin/add-course', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, semester, course_name, marks, grade }) });
-            if((await req.json()).success) { closeModal('add-course-modal'); reloadCurrentStudent(); } else alert("Failed.");
+            if((await req.json()).success) { closeModal('add-course-modal'); handleLogin({credential: globalToken}); } else alert("Failed.");
         }
 
         async function deleteSkill(id) {
             if(!confirm("Delete this skill?")) return;
             const req = await fetch('https://login-o753.onrender.com/api/admin/delete-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id }) });
-            if((await req.json()).success) reloadCurrentStudent();
+            if((await req.json()).success) handleLogin({credential: globalToken});
         }
 
         async function deleteCourse(id) {
             if(!confirm("Delete this course mark?")) return;
             const req = await fetch('https://login-o753.onrender.com/api/admin/delete-course', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id }) });
-            if((await req.json()).success) reloadCurrentStudent();
+            if((await req.json()).success) handleLogin({credential: globalToken});
         }
 
-        // --- INLINE EDITING (Profile, Skills, Courses) ---
+        // --- INLINE EDITING ---
         function openProfileEdit(field, spanId) {
             if (!isAdminMode) return;
             const span = document.getElementById(spanId);
@@ -502,7 +515,7 @@
             const val = document.getElementById(`in-${spanId}`).value;
             document.getElementById(`in-${spanId}`).parentElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i>`;
             const req = await fetch('https://login-o753.onrender.com/api/admin/update-field', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, field, value: val }) });
-            if ((await req.json()).success) reloadCurrentStudent(); else cancelProfileEdit(spanId, field);
+            if ((await req.json()).success) handleLogin({credential: globalToken}); else cancelProfileEdit(spanId, field);
         }
 
         function openSubEdit(field, spanId, id, route) {
@@ -520,7 +533,7 @@
             const val = document.getElementById(`in-${spanId}`).value;
             document.getElementById(`in-${spanId}`).parentElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i>`;
             const req = await fetch(`https://login-o753.onrender.com/api/admin/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field, value: val }) });
-            if ((await req.json()).success) reloadCurrentStudent(); else cancelSubEdit(spanId, field, id, route);
+            if ((await req.json()).success) handleLogin({credential: globalToken}); else cancelSubEdit(spanId, field, id, route);
         }
     </script>
 </body>
