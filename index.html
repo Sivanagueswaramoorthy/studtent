@@ -14,7 +14,7 @@
             --bg-app: #F4F7FE; --bg-surface: #FFFFFF; --primary: #4318FF; --primary-light: #E9E3FF;
             --purple: #7C3AED; --text-main: #2B3674; --text-muted: #8B98B4;
             --shadow-soft: 0px 18px 40px rgba(112, 144, 176, 0.12); --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            --radius-card: 20px; --radius-pill: 50px; --success: #00B67A;
+            --radius-card: 20px; --radius-pill: 50px; --success: #00B67A; --danger: #D93025;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -75,30 +75,33 @@
 
         /* Activities & Academics Grids */
         .ps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .ps-card { background: white; border-radius: 12px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: var(--shadow-sm); display: flex; flex-direction: column;}
-        .ps-img { width: 100%; height: 160px; object-fit: cover; }
+        .ps-card { background: white; border-radius: 12px; overflow: hidden; border: 1px solid #E2E8F0; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; position: relative;}
+        .ps-img { width: 100%; height: 140px; object-fit: cover; background: var(--primary-light); }
         .ps-body { padding: 16px; display: flex; flex-direction: column; flex: 1;}
-        .ps-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 15px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
-        .ps-meta { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-bottom: 15px;}
+        .ps-title { font-weight: 800; font-size: 1.1rem; margin-bottom: 15px; color: var(--text-main); }
+        .ps-meta { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); font-weight: 700; margin-bottom: 15px; align-items: center;}
         .ps-progress-bg { height: 6px; background: #E2E8F0; border-radius: 3px; margin-bottom: 8px;}
         .ps-progress-fill { height: 100%; background: var(--purple); border-radius: 3px;}
         .semester-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px;}
         .sem-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #E2E8F0;}
         .sem-title { font-size: 1.2rem; font-weight: 800; color: var(--text-main);}
-        .sem-table th, .sem-table td { padding: 10px 8px; font-size: 0.85rem;}
+        .sem-table th, .sem-table td { padding: 12px 8px; font-size: 0.85rem;}
 
         /* Admin Specifics */
-        .admin-edit-pen { display: none; font-size: 0.9rem; color: #cbd5e1; cursor: pointer; margin-left: 10px; transition: 0.2s; }
+        .admin-edit-pen { display: none; font-size: 0.85rem; color: #cbd5e1; cursor: pointer; margin-left: 8px; transition: 0.2s; }
         .admin-edit-pen:hover { color: var(--primary); }
-        .inline-input { border: 2px solid var(--primary); border-radius: 8px; font-size: 1.1rem; font-weight: 800; width: 75px; padding: 2px 6px; outline: none; background: #F8FAFF; color: var(--primary);}
+        .admin-delete-btn { display: none; position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.9); padding: 8px; border-radius: 8px; cursor: pointer; color: var(--danger); box-shadow: var(--shadow-sm); z-index: 10;}
+        .admin-table-del { display: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; }
+        .admin-only-btn { display: none; }
+        .inline-input { border: 2px solid var(--primary); border-radius: 8px; font-size: 1rem; font-weight: 800; width: 60px; padding: 4px 6px; outline: none; background: #F8FAFF; color: var(--primary);}
         .action-icon { cursor: pointer; margin-left: 6px; font-size: 1.1rem; }
         .action-icon.save { color: #059669; }
         .action-icon.cancel { color: #D93025; }
         #admin-back-btn { display: none; background: #FEF3C7; color: #D97706; padding: 10px; border-radius: 10px; font-weight: 800; text-align: center; cursor: pointer; margin-bottom: 15px; }
         #admin-badge { display: none; margin-left: 15px; background: #FEF3C7; color: #D97706; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; }
         
-        /* Modal Add Student */
-        #add-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(5px);}
+        /* Modals */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(5px);}
         .modal-input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 10px; border: 2px solid #E2E8F0; font-weight: 600; font-family: 'Plus Jakarta Sans'; outline: none; transition: 0.3s;}
         .modal-input:focus { border-color: var(--primary); }
     </style>
@@ -119,7 +122,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
             <h1 style="color: var(--text-main); font-weight: 800;"><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> Staff Directory</h1>
             <div style="display: flex; gap: 15px;">
-                <button class="action-btn btn-success" style="width: auto; margin: 0; padding: 10px 20px;" onclick="openAddModal()"><i class="fa-solid fa-user-plus"></i> Add Student</button>
+                <button class="action-btn btn-success" style="width: auto; margin: 0; padding: 10px 20px;" onclick="openModal('add-modal')"><i class="fa-solid fa-user-plus"></i> Add Student</button>
                 <button class="action-btn btn-solid" style="width: auto; margin: 0; padding: 10px 20px;" onclick="signOut()"><i class="fa-solid fa-sign-out-alt"></i> Log Out</button>
             </div>
         </div>
@@ -128,20 +131,6 @@
                 <thead style="background: #F8FAFF;"><tr><th>Student Name</th><th>Email</th><th>Roll No</th><th>Department</th></tr></thead>
                 <tbody id="directoryBody"></tbody>
             </table>
-        </div>
-    </div>
-
-    <div id="add-modal">
-        <div class="card" style="width: 450px; max-width: 90%;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h3 style="margin:0; font-weight: 800; color: var(--primary);"><i class="fa-solid fa-user-plus"></i> Register Student</h3>
-                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.5rem; color: #cbd5e1;" onclick="closeAddModal()"></i>
-            </div>
-            <input type="email" id="new-email" class="modal-input" placeholder="Google Email (e.g. sivanague@gmail.com)">
-            <input type="text" id="new-name" class="modal-input" placeholder="Full Student Name">
-            <input type="text" id="new-roll" class="modal-input" placeholder="Roll Number (e.g. 737624IT124)">
-            <input type="text" id="new-dept" class="modal-input" placeholder="Department (e.g. Information Tech)">
-            <button class="action-btn btn-solid" onclick="submitNewStudent()" style="margin-top: 10px;"><i class="fa-solid fa-cloud-arrow-up"></i> Save to Cloud Database</button>
         </div>
     </div>
 
@@ -182,36 +171,86 @@
                             <div><h3 id="cardProfileName" style="color: var(--text-main); font-weight: 800;">--</h3><span class="badge badge-success" style="margin-top: 5px; display: inline-block;">Active Student</span></div>
                         </div>
                         <div class="profile-details">
-                            <div class="detail-item"><span>Roll Number</span><div id="wrap-roll_no" style="display: flex; align-items: center;"><span id="val-roll_no">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('roll_no', 'val-roll_no')"></i></div></div>
-                            <div class="detail-item"><span>Department</span><div id="wrap-department" style="display: flex; align-items: center;"><span id="val-department">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('department', 'val-department')"></i></div></div>
+                            <div class="detail-item"><span>Roll Number</span><div id="wrap-roll_no" style="display: flex; align-items: center;"><span id="val-roll_no">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openProfileEdit('roll_no', 'val-roll_no')"></i></div></div>
+                            <div class="detail-item"><span>Department</span><div id="wrap-department" style="display: flex; align-items: center;"><span id="val-department">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openProfileEdit('department', 'val-department')"></i></div></div>
                         </div>
                     </div>
-
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                        <div class="stat-card"><div class="stat-header"><div class="icon-box"><i class="fa-solid fa-graduation-cap"></i></div> CGPA</div><div class="stat-value" id="wrap-cgpa"><span id="val-cgpa">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('cgpa', 'val-cgpa')"></i></div></div>
-                        <div class="stat-card"><div class="stat-header"><div class="icon-box"><i class="fa-solid fa-chart-line"></i></div> SGPA</div><div class="stat-value" id="wrap-sgpa"><span id="val-sgpa">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('sgpa', 'val-sgpa')"></i></div></div>
-                        <div class="stat-card"><div class="stat-header"><div class="icon-box"><i class="fa-solid fa-user-check"></i></div> Attendance</div><div class="stat-value" id="wrap-attendance"><span id="val-attendance">--</span><span style="font-size: 1rem; margin-left:2px;">%</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('attendance', 'val-attendance')"></i></div></div>
-                        <div class="stat-card"><div class="stat-header"><div class="icon-box" style="background: #FEF3C7; color: #D97706;"><i class="fa-solid fa-star"></i></div> Reward Pts</div><div class="stat-value" id="wrap-reward_points"><span id="val-reward_points">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('reward_points', 'val-reward_points')"></i></div></div>
-                        <div class="stat-card"><div class="stat-header"><div class="icon-box" style="color: #D93025; background: #FCE8E6;"><i class="fa-solid fa-triangle-exclamation"></i></div> Arrears</div><div class="stat-value" id="wrap-arrears"><span id="val-arrears">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('arrears', 'val-arrears')"></i></div></div>
-                        <div class="stat-card"><div class="stat-header"><div class="icon-box" style="color: #8B5CF6; background: #F3E8FF;"><i class="fa-solid fa-calendar-xmark"></i></div> Leaves</div><div class="stat-value" id="wrap-leaves"><span id="val-leaves">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('leaves', 'val-leaves')"></i></div></div>
+                        <div class="stat-card"><div class="stat-header"><div class="icon-box"><i class="fa-solid fa-graduation-cap"></i></div> CGPA</div><div class="stat-value" id="wrap-cgpa"><span id="val-cgpa">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openProfileEdit('cgpa', 'val-cgpa')"></i></div></div>
+                        <div class="stat-card"><div class="stat-header"><div class="icon-box"><i class="fa-solid fa-chart-line"></i></div> SGPA</div><div class="stat-value" id="wrap-sgpa"><span id="val-sgpa">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openProfileEdit('sgpa', 'val-sgpa')"></i></div></div>
+                        <div class="stat-card"><div class="stat-header"><div class="icon-box"><i class="fa-solid fa-user-check"></i></div> Attendance</div><div class="stat-value" id="wrap-attendance"><span id="val-attendance">--</span><span style="font-size: 1rem; margin-left:2px;">%</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openProfileEdit('attendance', 'val-attendance')"></i></div></div>
+                        <div class="stat-card"><div class="stat-header"><div class="icon-box" style="background: #FEF3C7; color: #D97706;"><i class="fa-solid fa-star"></i></div> Reward Pts</div><div class="stat-value" id="wrap-reward_points"><span id="val-reward_points">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openProfileEdit('reward_points', 'val-reward_points')"></i></div></div>
+                        <div class="stat-card"><div class="stat-header"><div class="icon-box" style="color: #D93025; background: #FCE8E6;"><i class="fa-solid fa-triangle-exclamation"></i></div> Arrears</div><div class="stat-value" id="wrap-arrears"><span id="val-arrears">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openProfileEdit('arrears', 'val-arrears')"></i></div></div>
+                        <div class="stat-card"><div class="stat-header"><div class="icon-box" style="color: #8B5CF6; background: #F3E8FF;"><i class="fa-solid fa-calendar-xmark"></i></div> Leaves</div><div class="stat-value" id="wrap-leaves"><span id="val-leaves">--</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openProfileEdit('leaves', 'val-leaves')"></i></div></div>
                     </div>
                 </div>
             </div>
 
             <div id="view-activities" class="view-section">
-                <div style="margin-top: 10px; margin-bottom: 20px;"><h2 style="font-size: 1.5rem; font-weight: 800;">PCDP Portal</h2></div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 25px;">
+                    <div><h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main);">PCDP Skills & Certifications</h2></div>
+                    <button class="badge badge-success admin-only-btn" style="border:none; cursor:pointer; padding: 10px 20px; font-size: 0.9rem;" onclick="openModal('add-skill-modal')"><i class="fa-solid fa-plus"></i> Add Skill</button>
+                </div>
                 <div class="ps-grid" id="skills-container"></div>
             </div>
 
             <div id="view-academics" class="view-section">
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 25px;">
                     <div><h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main);">Academic Transcript</h2></div>
-                    <button class="badge badge-primary" style="border:none; cursor:pointer; padding: 10px 20px; font-size: 0.9rem;"><i class="fa-solid fa-download"></i> Download PDF</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="badge badge-success admin-only-btn" style="border:none; cursor:pointer; padding: 10px 20px; font-size: 0.9rem;" onclick="openModal('add-course-modal')"><i class="fa-solid fa-plus"></i> Add Course</button>
+                        <button class="badge badge-primary" style="border:none; cursor:pointer; padding: 10px 20px; font-size: 0.9rem;"><i class="fa-solid fa-download"></i> Download PDF</button>
+                    </div>
                 </div>
                 <div class="semester-grid" id="academics-container"></div>
             </div>
-
         </main>
+    </div>
+
+    <div id="add-modal" class="modal-overlay">
+        <div class="card" style="width: 450px; max-width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h3 style="margin:0; font-weight: 800; color: var(--primary);"><i class="fa-solid fa-user-plus"></i> Register Student</h3>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.5rem;" onclick="closeModal('add-modal')"></i>
+            </div>
+            <input type="email" id="new-email" class="modal-input" placeholder="Google Email">
+            <input type="text" id="new-name" class="modal-input" placeholder="Full Student Name">
+            <input type="text" id="new-roll" class="modal-input" placeholder="Roll Number">
+            <input type="text" id="new-dept" class="modal-input" placeholder="Department">
+            <button class="action-btn btn-solid" onclick="submitNewStudent()">Save to Cloud</button>
+        </div>
+    </div>
+
+    <div id="add-skill-modal" class="modal-overlay">
+        <div class="card" style="width: 450px; max-width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h3 style="margin:0; font-weight: 800; color: var(--primary);"><i class="fa-solid fa-bolt"></i> Add PCDP Skill</h3>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.5rem;" onclick="closeModal('add-skill-modal')"></i>
+            </div>
+            <input type="text" id="sk-name" class="modal-input" placeholder="Skill Name (e.g., C-Programming)">
+            <input type="text" id="sk-cat" class="modal-input" placeholder="Category (e.g., Technical)">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="number" id="sk-comp" class="modal-input" placeholder="Completed Levels (e.g., 1)">
+                <input type="number" id="sk-tot" class="modal-input" placeholder="Total Levels (e.g., 3)">
+            </div>
+            <button class="action-btn btn-solid" onclick="submitNewSkill()">Add Skill</button>
+        </div>
+    </div>
+
+    <div id="add-course-modal" class="modal-overlay">
+        <div class="card" style="width: 450px; max-width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h3 style="margin:0; font-weight: 800; color: var(--primary);"><i class="fa-solid fa-book"></i> Add Course Mark</h3>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.5rem;" onclick="closeModal('add-course-modal')"></i>
+            </div>
+            <input type="number" id="crs-sem" class="modal-input" placeholder="Semester (e.g., 1)">
+            <input type="text" id="crs-name" class="modal-input" placeholder="Subject Name">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="number" id="crs-mark" class="modal-input" placeholder="Marks (out of 100)">
+                <input type="text" id="crs-grade" class="modal-input" placeholder="Grade (e.g., A)">
+            </div>
+            <button class="action-btn btn-solid" onclick="submitNewCourse()">Add Course</button>
+        </div>
     </div>
 
     <script>
@@ -225,13 +264,15 @@
             google.accounts.id.renderButton(document.getElementById("g_id_signin"), { theme: "filled_blue", size: "large", shape: "pill" });
         };
 
-        // --- TAB SWITCHING LOGIC ---
         function switchTab(tabId, element) {
             document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
             if(element) element.classList.add('active');
             document.querySelectorAll('.view-section').forEach(view => view.classList.remove('active'));
             document.getElementById('view-' + tabId).classList.add('active');
         }
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
         async function handleLogin(response) {
             globalToken = response.credential;
@@ -251,7 +292,7 @@
                     document.getElementById('headerImage').src = data.profile.picture;
                     
                     const adminStyle = document.createElement('style');
-                    adminStyle.innerHTML = '.admin-edit-pen { display: inline-block !important; }';
+                    adminStyle.innerHTML = '.admin-edit-pen, .admin-delete-btn, .admin-table-del { display: inline-block !important; } .admin-only-btn { display: block !important; }';
                     document.head.appendChild(adminStyle);
 
                     document.getElementById('admin-back-btn').style.display = 'block';
@@ -264,7 +305,6 @@
                     document.getElementById('headerEmail').innerText = data.profile.email;
                     document.getElementById('headerImage').src = data.picture || 'https://via.placeholder.com/40';
                     
-                    // Pass courses & skills to populate the tabs
                     populateDashboard(data.profile, data.picture, data.courses, data.skills);
                     switchView('app-view');
                     switchTab('dashboard', document.querySelectorAll('.nav-item')[0]);
@@ -272,7 +312,6 @@
             } catch (e) { errBox.innerText = "Server Connection Failed."; errBox.style.display = 'block'; }
         }
 
-        // --- DIRECTORY & ADD STUDENT LOGIC ---
         async function fetchDirectory() {
             const req = await fetch('https://login-o753.onrender.com/api/admin/list', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken })
@@ -289,31 +328,6 @@
             }
         }
 
-        function openAddModal() { document.getElementById('add-modal').style.display = 'flex'; }
-        function closeAddModal() { document.getElementById('add-modal').style.display = 'none'; }
-        
-        async function submitNewStudent() {
-            const email = document.getElementById('new-email').value;
-            const full_name = document.getElementById('new-name').value;
-            const roll_no = document.getElementById('new-roll').value;
-            const department = document.getElementById('new-dept').value;
-
-            if(!email || !full_name) return alert("Email and Name are required fields.");
-
-            const req = await fetch('https://login-o753.onrender.com/api/admin/add-student', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminToken: globalToken, email, full_name, roll_no, department })
-            });
-            const res = await req.json();
-            if(res.success) {
-                alert("Student Added! They can now log in securely.");
-                document.getElementById('new-email').value = ''; document.getElementById('new-name').value = '';
-                document.getElementById('new-roll').value = ''; document.getElementById('new-dept').value = '';
-                closeAddModal();
-                fetchDirectory(); 
-            } else alert("Failed to add student.");
-        }
-
         async function loadStudentData(email) {
             targetStudentEmail = email;
             const req = await fetch('https://login-o753.onrender.com/api/admin/student-data', {
@@ -322,18 +336,18 @@
             });
             const data = await req.json();
             if (data.success) { 
-                // Pass courses & skills to populate the tabs for the Admin View
                 populateDashboard(data.profile, 'https://via.placeholder.com/110', data.courses, data.skills); 
                 switchView('app-view'); 
                 switchTab('dashboard', document.querySelectorAll('.nav-item')[0]);
             }
         }
 
+        function reloadCurrentStudent() { loadStudentData(targetStudentEmail); }
         function backToDirectory() { switchView('dir-view'); }
+        function signOut() { location.reload(); }
 
-        // --- DASHBOARD UI & TAB POPULATION ---
+        // --- DASHBOARD UI POPULATION ---
         function populateDashboard(p, img, courses, skills) {
-            // 1. Profile Data
             document.getElementById('cardProfileName').innerText = p.full_name;
             document.getElementById('cardProfileImg').src = img || 'https://via.placeholder.com/110';
             document.getElementById('val-roll_no').innerText = p.roll_no || '--';
@@ -345,25 +359,33 @@
             document.getElementById('val-arrears').innerText = p.arrears;
             document.getElementById('val-leaves').innerText = p.leaves;
 
-            // 2. Activities (PCDP Skills) Data
+            // Render Skills (PCDP)
             if(skills && skills.length > 0) {
                 document.getElementById('skills-container').innerHTML = skills.map(s => {
                     let pct = Math.round((s.completed_levels / s.total_levels) * 100) || 0;
                     return `<div class="ps-card">
-                        <img src="${s.image_url || 'https://via.placeholder.com/300x160'}" class="ps-img">
+                        <i class="fa-solid fa-trash admin-delete-btn" onclick="deleteSkill(${s.id})"></i>
                         <div class="ps-body">
-                            <div class="ps-title">${s.skill_name}</div>
-                            <div class="ps-meta"><span><i class="fa-solid fa-layer-group"></i> Levels: ${s.total_levels}</span><span>${s.category || 'General'}</span></div>
+                            <div class="ps-title" style="display:flex; align-items:center;">
+                                <span id="sk-n-${s.id}">${s.skill_name}</span> 
+                                <i class="fa-solid fa-pen admin-edit-pen" onclick="openSubEdit('skill_name', 'sk-n-${s.id}', ${s.id}, 'update-skill')"></i>
+                            </div>
+                            <div class="ps-meta">
+                                <span style="display:flex; align-items:center;">
+                                    <i class="fa-solid fa-layer-group" style="margin-right:5px;"></i> Lvl: 
+                                    <span id="sk-c-${s.id}">${s.completed_levels}</span><i class="fa-solid fa-pen admin-edit-pen" style="margin:0 5px;" onclick="openSubEdit('completed_levels', 'sk-c-${s.id}', ${s.id}, 'update-skill')"></i> / 
+                                    <span id="sk-t-${s.id}">${s.total_levels}</span><i class="fa-solid fa-pen admin-edit-pen" style="margin:0 0 0 5px;" onclick="openSubEdit('total_levels', 'sk-t-${s.id}', ${s.id}, 'update-skill')"></i>
+                                </span>
+                                <span>${s.category || 'General'}</span>
+                            </div>
                             <div class="ps-progress-bg"><div class="ps-progress-fill" style="width: ${pct}%;"></div></div>
                             <div style="text-align: center; font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">Progress: ${pct}%</div>
                         </div>
                     </div>`;
                 }).join('');
-            } else {
-                document.getElementById('skills-container').innerHTML = `<p style="color:var(--text-muted); padding: 20px;">No PCDP activities logged yet.</p>`;
-            }
+            } else { document.getElementById('skills-container').innerHTML = `<p style="color:var(--text-muted);">No PCDP activities logged yet.</p>`; }
 
-            // 3. Academics Data (Transcript)
+            // Render Courses (Semester Wise)
             if(courses && courses.length > 0) {
                 let sems = {};
                 courses.forEach(c => { if(!sems[c.semester]) sems[c.semester]=[]; sems[c.semester].push(c); });
@@ -371,18 +393,17 @@
                     <div class="card" style="padding: 0; overflow: hidden;">
                         <div class="sem-header" style="padding: 20px; margin: 0; background: #F8FAFF;"><div class="sem-title">Semester ${sem}</div></div>
                         <table class="modern-table sem-table">
-                            <thead><tr><th>Subject</th><th>Marks</th><th>Grade</th></tr></thead>
+                            <thead><tr><th>Subject</th><th>Marks</th><th>Grade</th><th></th></tr></thead>
                             <tbody>${sems[sem].map(c => `<tr>
-                                <td>${c.course_name}</td>
-                                <td style="font-weight: 700;">${c.marks || '--'}</td>
-                                <td><span class="badge ${c.grade && (c.grade.includes('A')||c.grade==='O')?'badge-success':'badge-primary'}" style="background:transparent;padding:0;">${c.grade || '--'}</span></td>
+                                <td><span id="cr-n-${c.id}">${c.course_name}</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openSubEdit('course_name', 'cr-n-${c.id}', ${c.id}, 'update-course')"></i></td>
+                                <td style="font-weight: 700;"><span id="cr-m-${c.id}">${c.marks || '--'}</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openSubEdit('marks', 'cr-m-${c.id}', ${c.id}, 'update-course')"></i></td>
+                                <td><span class="badge ${c.grade && (c.grade.includes('A')||c.grade==='O')?'badge-success':'badge-primary'}" style="background:transparent;padding:0;"><span id="cr-g-${c.id}">${c.grade || '--'}</span></span><i class="fa-solid fa-pen admin-edit-pen" onclick="openSubEdit('grade', 'cr-g-${c.id}', ${c.id}, 'update-course')"></i></td>
+                                <td style="text-align:right;"><i class="fa-solid fa-trash admin-table-del" onclick="deleteCourse(${c.id})"></i></td>
                             </tr>`).join('')}</tbody>
                         </table>
                     </div>
                 `).join('');
-            } else {
-                document.getElementById('academics-container').innerHTML = `<p style="color:var(--text-muted); padding: 20px;">No academic courses recorded yet.</p>`;
-            }
+            } else { document.getElementById('academics-container').innerHTML = `<p style="color:var(--text-muted);">No academic courses recorded yet.</p>`; }
         }
 
         function switchView(viewId) {
@@ -393,36 +414,76 @@
             if (viewId === 'app-view') requestAnimationFrame(() => document.getElementById('app-view').style.opacity = '1');
         }
 
-        function signOut() { location.reload(); }
+        // --- SUBMISSIONS & DELETIONS ---
+        async function submitNewStudent() {
+            const email = document.getElementById('new-email').value, full_name = document.getElementById('new-name').value, roll_no = document.getElementById('new-roll').value, department = document.getElementById('new-dept').value;
+            if(!email || !full_name) return alert("Email and Name are required.");
+            const req = await fetch('https://login-o753.onrender.com/api/admin/add-student', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, email, full_name, roll_no, department }) });
+            if((await req.json()).success) { closeModal('add-modal'); fetchDirectory(); } else alert("Failed.");
+        }
 
-        // --- INLINE EDITING ---
-        function openEdit(field, spanId) {
+        async function submitNewSkill() {
+            const skill_name = document.getElementById('sk-name').value, category = document.getElementById('sk-cat').value, completed_levels = document.getElementById('sk-comp').value, total_levels = document.getElementById('sk-tot').value;
+            if(!skill_name) return alert("Skill name required.");
+            const req = await fetch('https://login-o753.onrender.com/api/admin/add-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, skill_name, category, completed_levels, total_levels }) });
+            if((await req.json()).success) { closeModal('add-skill-modal'); reloadCurrentStudent(); } else alert("Failed.");
+        }
+
+        async function submitNewCourse() {
+            const semester = document.getElementById('crs-sem').value, course_name = document.getElementById('crs-name').value, marks = document.getElementById('crs-mark').value, grade = document.getElementById('crs-grade').value;
+            if(!course_name || !semester) return alert("Semester and Course name required.");
+            const req = await fetch('https://login-o753.onrender.com/api/admin/add-course', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, semester, course_name, marks, grade }) });
+            if((await req.json()).success) { closeModal('add-course-modal'); reloadCurrentStudent(); } else alert("Failed.");
+        }
+
+        async function deleteSkill(id) {
+            if(!confirm("Delete this skill?")) return;
+            const req = await fetch('https://login-o753.onrender.com/api/admin/delete-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id }) });
+            if((await req.json()).success) reloadCurrentStudent();
+        }
+
+        async function deleteCourse(id) {
+            if(!confirm("Delete this course mark?")) return;
+            const req = await fetch('https://login-o753.onrender.com/api/admin/delete-course', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id }) });
+            if((await req.json()).success) reloadCurrentStudent();
+        }
+
+        // --- INLINE EDITING (Profile, Skills, Courses) ---
+        function openProfileEdit(field, spanId) {
             if (!isAdminMode) return;
             const span = document.getElementById(spanId);
-            const parent = span.parentElement;
-            originalValues[field] = span.innerText.trim();
-            parent.innerHTML = `<input type="text" id="in-${field}" class="inline-input" value="${originalValues[field]}"><i class="fa-solid fa-circle-check action-icon save" onclick="saveEdit('${field}', '${spanId}')"></i><i class="fa-solid fa-circle-xmark action-icon cancel" onclick="cancelEdit('${field}', '${spanId}')"></i>`;
+            originalValues[spanId] = span.innerText.trim();
+            span.parentElement.innerHTML = `<input type="text" id="in-${spanId}" class="inline-input" value="${originalValues[spanId]}"><i class="fa-solid fa-circle-check action-icon save" onclick="saveProfileEdit('${field}', '${spanId}')"></i><i class="fa-solid fa-circle-xmark action-icon cancel" onclick="cancelProfileEdit('${spanId}', '${field}')"></i>`;
         }
 
-        function cancelEdit(field, spanId) {
-            document.getElementById(`in-${field}`).parentElement.innerHTML = `<span id="${spanId}">${originalValues[field]}</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('${field}', '${spanId}')"></i>`;
+        function cancelProfileEdit(spanId, field) {
+            document.getElementById(`in-${spanId}`).parentElement.innerHTML = `<span id="${spanId}">${originalValues[spanId]}</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openProfileEdit('${field}', '${spanId}')"></i>`;
         }
 
-        async function saveEdit(field, spanId) {
-            const val = document.getElementById(`in-${field}`).value;
-            const parent = document.getElementById(`in-${field}`).parentElement;
-            parent.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i>`;
+        async function saveProfileEdit(field, spanId) {
+            const val = document.getElementById(`in-${spanId}`).value;
+            document.getElementById(`in-${spanId}`).parentElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i>`;
+            const req = await fetch('https://login-o753.onrender.com/api/admin/update-field', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, field, value: val }) });
+            if ((await req.json()).success) reloadCurrentStudent(); else cancelProfileEdit(spanId, field);
+        }
 
-            const req = await fetch('https://login-o753.onrender.com/api/admin/update-field', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, field, value: val })
-            });
-            const res = await req.json();
-            
-            if (res.success) {
-                const displayVal = field.includes('gpa') ? parseFloat(val).toFixed(2) : val;
-                parent.innerHTML = `<span id="${spanId}">${displayVal}</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openEdit('${field}', '${spanId}')"></i>`;
-            } else { alert("Update failed."); cancelEdit(field, spanId); }
+        // Inline Edits for Sub-tables (Skills & Courses use their DB IDs)
+        function openSubEdit(field, spanId, id, route) {
+            if (!isAdminMode) return;
+            const span = document.getElementById(spanId);
+            originalValues[spanId] = span.innerText.trim();
+            span.parentElement.innerHTML = `<input type="text" id="in-${spanId}" class="inline-input" value="${originalValues[spanId]}"><i class="fa-solid fa-circle-check action-icon save" onclick="saveSubEdit('${field}', '${spanId}', ${id}, '${route}')"></i><i class="fa-solid fa-circle-xmark action-icon cancel" onclick="cancelSubEdit('${spanId}', '${field}', ${id}, '${route}')"></i>`;
+        }
+
+        function cancelSubEdit(spanId, field, id, route) {
+            document.getElementById(`in-${spanId}`).parentElement.innerHTML = `<span id="${spanId}">${originalValues[spanId]}</span><i class="fa-solid fa-pen admin-edit-pen" onclick="openSubEdit('${field}', '${spanId}', ${id}, '${route}')"></i>`;
+        }
+
+        async function saveSubEdit(field, spanId, id, route) {
+            const val = document.getElementById(`in-${spanId}`).value;
+            document.getElementById(`in-${spanId}`).parentElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i>`;
+            const req = await fetch(`https://login-o753.onrender.com/api/admin/${route}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field, value: val }) });
+            if ((await req.json()).success) reloadCurrentStudent(); else cancelSubEdit(spanId, field, id, route);
         }
     </script>
 </body>
