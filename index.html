@@ -253,7 +253,7 @@
         </div>
     </div>
 
-    <script>
+<script>
         let globalToken = "";
         let isAdminMode = false;
         let targetStudentEmail = "";
@@ -262,6 +262,18 @@
         window.onload = () => {
             google.accounts.id.initialize({ client_id: "318717217301-kot0gq3l7amhtfphhvsbjh4ehau9heb4.apps.googleusercontent.com", callback: handleLogin });
             google.accounts.id.renderButton(document.getElementById("g_id_signin"), { theme: "filled_blue", size: "large", shape: "pill" });
+
+            // --- NEW: AUTO-LOGIN ON REFRESH ---
+            const savedToken = localStorage.getItem('bit_session_token');
+            if (savedToken) {
+                // If a session exists, automatically attempt to log in using it
+                document.getElementById('g_id_signin').style.display = 'none';
+                document.getElementById('error-msg').style.color = 'var(--text-main)';
+                document.getElementById('error-msg').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Syncing live data...';
+                document.getElementById('error-msg').style.display = 'block';
+                
+                handleLogin({ credential: savedToken });
+            }
         };
 
         function switchTab(tabId, element) {
@@ -277,7 +289,6 @@
         async function handleLogin(response) {
             globalToken = response.credential;
             const errBox = document.getElementById('error-msg');
-            errBox.style.display = 'none';
             
             try {
                 const req = await fetch('https://login-o753.onrender.com/api/auth', {
@@ -286,6 +297,10 @@
                 const data = await req.json();
 
                 if (data.isAdmin) {
+                    // SAVE SESSION
+                    localStorage.setItem('bit_session_token', globalToken);
+                    errBox.style.display = 'none';
+
                     isAdminMode = true;
                     document.getElementById('headerName').innerText = data.profile.full_name;
                     document.getElementById('headerEmail').innerText = data.profile.email;
@@ -300,6 +315,10 @@
 
                     fetchDirectory();
                 } else if (data.success) {
+                    // SAVE SESSION
+                    localStorage.setItem('bit_session_token', globalToken);
+                    errBox.style.display = 'none';
+
                     isAdminMode = false;
                     document.getElementById('headerName').innerText = data.profile.full_name;
                     document.getElementById('headerEmail').innerText = data.profile.email;
@@ -308,8 +327,22 @@
                     populateDashboard(data.profile, data.picture, data.courses, data.skills);
                     switchView('app-view');
                     switchTab('dashboard', document.querySelectorAll('.nav-item')[0]);
-                } else { errBox.innerText = data.message; errBox.style.display = 'block'; }
-            } catch (e) { errBox.innerText = "Server Connection Failed."; errBox.style.display = 'block'; }
+                } else { 
+                    // Clear broken session
+                    localStorage.removeItem('bit_session_token');
+                    document.getElementById('g_id_signin').style.display = 'block';
+                    errBox.style.color = '#D93025';
+                    errBox.innerText = data.message; 
+                    errBox.style.display = 'block'; 
+                }
+            } catch (e) { 
+                // Clear expired session
+                localStorage.removeItem('bit_session_token');
+                document.getElementById('g_id_signin').style.display = 'block';
+                errBox.style.color = '#D93025';
+                errBox.innerText = "Session expired or Connection Failed. Please log in again."; 
+                errBox.style.display = 'block'; 
+            }
         }
 
         async function fetchDirectory() {
@@ -344,7 +377,12 @@
 
         function reloadCurrentStudent() { loadStudentData(targetStudentEmail); }
         function backToDirectory() { switchView('dir-view'); }
-        function signOut() { location.reload(); }
+        
+        // --- LOGOUT ROUTINE ---
+        function signOut() { 
+            localStorage.removeItem('bit_session_token'); // Clear session
+            location.reload(); // Reload to show login screen
+        }
 
         // --- DASHBOARD UI POPULATION ---
         function populateDashboard(p, img, courses, skills) {
@@ -467,7 +505,6 @@
             if ((await req.json()).success) reloadCurrentStudent(); else cancelProfileEdit(spanId, field);
         }
 
-        // Inline Edits for Sub-tables (Skills & Courses use their DB IDs)
         function openSubEdit(field, spanId, id, route) {
             if (!isAdminMode) return;
             const span = document.getElementById(spanId);
