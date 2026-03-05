@@ -1,251 +1,1202 @@
-const express = require('express');
-const cors = require('cors');
-const { OAuth2Client } = require('google-auth-library');
-const mysql = require('mysql2');
-
-const app = express();
-app.use(cors()); 
-app.use(express.json());
-
-const CLIENT_ID = "318717217301-kot0gq3l7amhtfphhvsbjh4ehau9heb4.apps.googleusercontent.com";
-const googleClient = new OAuth2Client(CLIENT_ID);
-
-const dbPool = mysql.createPool({
-    host: 'mysql-32a5e69e-sivanagu7771-74ba.d.aivencloud.com',
-    port: 17949, 
-    user: 'avnadmin', 
-    password: 'AVNS_x5GIyjOoanVqXlKMi0w',
-    database: 'defaultdb', 
-    waitForConnections: true,
-    connectionLimit: 10,
-    ssl: { rejectUnauthorized: false } 
-});
-const promisePool = dbPool.promise();
-
-// --- DB AUTO-INITIALIZER (Includes New Placement Tables) ---
-(async function initializeDatabase() {
-    try {
-        await promisePool.query(`CREATE TABLE IF NOT EXISTS student_sem_gpa (id INT AUTO_INCREMENT PRIMARY KEY, student_email VARCHAR(255) NOT NULL, semester INT NOT NULL, gpa VARCHAR(10), UNIQUE KEY unique_sem (student_email, semester))`);
-        
-        // PLACEMENT HUB TABLES
-        await promisePool.query(`CREATE TABLE IF NOT EXISTS placement_global (id INT PRIMARY KEY, total_placed VARCHAR(50), ongoing_drives VARCHAR(50), highest_ctc VARCHAR(50), avg_ctc VARCHAR(50))`);
-        await promisePool.query(`INSERT IGNORE INTO placement_global (id, total_placed, ongoing_drives, highest_ctc, avg_ctc) VALUES (1, '0', '0', '0', '0')`);
-        await promisePool.query(`CREATE TABLE IF NOT EXISTS placement_drives (id INT AUTO_INCREMENT PRIMARY KEY, company VARCHAR(255), role VARCHAR(255), appeared VARCHAR(50), selected VARCHAR(50), ctc VARCHAR(50))`);
-        await promisePool.query(`CREATE TABLE IF NOT EXISTS placement_student_profile (student_email VARCHAR(255) PRIMARY KEY, offer_role VARCHAR(255) DEFAULT '--', offer_company VARCHAR(255) DEFAULT '--', offer_ctc VARCHAR(50) DEFAULT '--', status VARCHAR(50) DEFAULT 'Unplaced', assessments VARCHAR(50) DEFAULT '0', interviews VARCHAR(50) DEFAULT '0', offers VARCHAR(50) DEFAULT '0', tech_dsa VARCHAR(50) DEFAULT '0', tech_oop VARCHAR(50) DEFAULT '0', tech_core VARCHAR(50) DEFAULT '0', apt_quant VARCHAR(50) DEFAULT '0', apt_logical VARCHAR(50) DEFAULT '0', apt_hr VARCHAR(50) DEFAULT '0')`);
-        await promisePool.query(`CREATE TABLE IF NOT EXISTS placement_apps (id INT AUTO_INCREMENT PRIMARY KEY, student_email VARCHAR(255), company VARCHAR(255), role VARCHAR(255), date_applied VARCHAR(50), status VARCHAR(50))`);
-        
-        console.log("Database Verified: Enterprise Placement tables ready.");
-    } catch (err) { console.error("DB Init Error:", err.message); }
-})();
-
-// --- SMART LOGIN ---
-app.post('/api/auth', async (req, res) => {
-    try {
-        const ticket = await googleClient.verifyIdToken({ idToken: req.body.token, audience: CLIENT_ID });
-        const email = ticket.getPayload().email;
-
-        // Fetch Global Placement Data for everyone
-        const [globalStats] = await promisePool.query("SELECT * FROM placement_global WHERE id = 1");
-        const [globalDrives] = await promisePool.query("SELECT * FROM placement_drives ORDER BY id DESC");
-
-        if (email.toLowerCase() === 'sivanagu7771@gmail.com') {
-            return res.json({ success: true, isAdmin: true, profile: { full_name: ticket.getPayload().name, email: email, picture: ticket.getPayload().picture }, globalStats: globalStats[0], globalDrives });
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIT Sathy | Enterprise Portal</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Premium Enterprise Palette */
+            --bg-app: #F8FAFC; 
+            --bg-surface: #FFFFFF; 
+            --primary: #4F46E5; 
+            --primary-hover: #4338CA;
+            --primary-light: #EEF2FF; 
+            --text-main: #0F172A; 
+            --text-muted: #64748B;
+            --border: #E2E8F0; 
+            --success: #10B981; --success-light: #D1FAE5; --success-bg: #ECFDF5;
+            --danger: #EF4444; --danger-light: #FEE2E2; --danger-bg: #FEF2F2;
+            --warning: #F59E0B; --warning-light: #FEF3C7;
+            --purple: #8B5CF6; --purple-light: #EDE9FE;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05); 
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05); 
+            --radius: 12px;
         }
 
-        const [profile] = await promisePool.query("SELECT * FROM student_profile WHERE LOWER(email) = LOWER(?)", [email]);
-        if (profile.length === 0) return res.status(404).json({ success: false, message: "Student record not found." });
+        /* --- REDUCED GLOBAL FONT SCALE --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-app); color: var(--text-main); height: 100vh; width: 100vw; overflow: hidden; display: flex; font-size: 14px; }
 
-        const [courses] = await promisePool.query("SELECT * FROM student_courses WHERE student_email = ? ORDER BY semester ASC", [profile[0].email]);
-        const [skills] = await promisePool.query("SELECT * FROM student_skills WHERE student_email = ?", [profile[0].email]);
-        const [semGpas] = await promisePool.query("SELECT semester, gpa FROM student_sem_gpa WHERE student_email = ?", [profile[0].email]);
+        .flex-between { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 12px; }
+        .flex-center { display: flex; align-items: center; gap: 8px; }
+
+        /* Login Screen */
+        #login-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-app); display: flex; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.4s ease; }
+        .login-card { background: var(--bg-surface); padding: 3rem; border-radius: 16px; box-shadow: var(--shadow-lg); text-align: center; width: 100%; max-width: 400px; border: 1px solid var(--border); }
+        .login-logo { width: 56px; height: 56px; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 1.6rem; margin: 0 auto 20px auto; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+
+        /* Sidebar */
+        .sidebar { width: 250px; background: var(--bg-surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 16px; z-index: 10; flex-shrink: 0; }
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.15rem; margin-bottom: 40px; padding: 0 12px; color: var(--text-main); letter-spacing: -0.5px;}
+        .brand i { color: var(--primary); font-size: 1.3rem; }
+        .nav-menu { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; color: var(--text-muted); font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; font-size: 0.85rem; }
+        .nav-item i { width: 16px; text-align: center; font-size: 0.95rem; opacity: 0.7; }
+        .nav-item:hover { background: var(--bg-app); color: var(--text-main); }
+        .nav-item:hover i { opacity: 1; color: var(--primary); }
+        .nav-item.active { background: var(--primary-light); color: var(--primary); }
+        .nav-item.active i { opacity: 1; color: var(--primary); }
+        .nav-bottom { margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border); }
         
-        const [placeProfile] = await promisePool.query("SELECT * FROM placement_student_profile WHERE student_email = ?", [profile[0].email]);
-        const [placeApps] = await promisePool.query("SELECT * FROM placement_apps WHERE student_email = ? ORDER BY id DESC", [profile[0].email]);
+        /* Main Layout */
+        .main-content { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; position: relative; }
+        .top-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 32px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); z-index: 5; height: 64px; }
+        .scrollable-area { flex: 1; overflow-y: auto; padding: 32px; }
         
-        res.json({ success: true, isAdmin: false, profile: profile[0], courses, skills, semGpas, globalStats: globalStats[0], globalDrives, placeProfile: placeProfile[0], placeApps, picture: ticket.getPayload().picture });
-    } catch (error) { res.status(500).json({ success: false, message: "Server authentication failed." }); }
-});
+        /* Permanent User Profile Header */
+        .user-profile { display: flex; align-items: center; gap: 12px; }
+        .user-info { text-align: right; }
+        .user-name { font-weight: 700; font-size: 0.85rem; color: var(--text-main); }
+        .user-email { font-size: 0.7rem; color: var(--text-muted); font-weight: 500; }
+        .profile-img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); }
 
-async function verifyAdmin(token) {
-    const ticket = await googleClient.verifyIdToken({ idToken: token, audience: CLIENT_ID });
-    if (ticket.getPayload().email.toLowerCase() !== 'sivanagu7771@gmail.com') throw new Error("Unauthorized");
-    return true;
-}
+        .view-section { display: none; animation: subtleFadeIn 0.3s ease-out forwards; }
+        .view-section.active { display: block; }
+        @keyframes subtleFadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-app.post('/api/admin/list', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        const [rows] = await promisePool.query("SELECT email, full_name, roll_no, department FROM student_profile ORDER BY full_name ASC");
-        res.json({ success: true, students: rows });
-    } catch (e) { res.status(403).json({ success: false }); }
-});
-
-app.post('/api/admin/student-data', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        const email = req.body.targetEmail;
-        const [profile] = await promisePool.query("SELECT * FROM student_profile WHERE LOWER(email) = LOWER(?)", [email]);
-        const [courses] = await promisePool.query("SELECT * FROM student_courses WHERE student_email = ? ORDER BY semester ASC", [email]);
-        const [skills] = await promisePool.query("SELECT * FROM student_skills WHERE student_email = ?", [email]);
-        const [semGpas] = await promisePool.query("SELECT semester, gpa FROM student_sem_gpa WHERE student_email = ?", [email]);
+        /* General UI Components */
+        .card { background: var(--bg-surface); border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); margin-bottom: 24px; }
+        .page-title { font-size: 1.4rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px; margin: 0; }
         
-        const [placeProfile] = await promisePool.query("SELECT * FROM placement_student_profile WHERE student_email = ?", [email]);
-        const [placeApps] = await promisePool.query("SELECT * FROM placement_apps WHERE student_email = ? ORDER BY id DESC", [email]);
+        .action-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: all 0.2s ease; border: 1px solid transparent; outline: none; }
+        .btn-primary { background: var(--primary); color: white; box-shadow: var(--shadow-sm); }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-outline { background: white; color: var(--text-main); border-color: var(--border); box-shadow: var(--shadow-sm); }
+        .btn-outline:hover { background: var(--bg-app); transform: translateY(-1px); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; transform: translateY(-1px); }
 
-        res.json({ success: true, profile: profile[0], courses, skills, semGpas, placeProfile: placeProfile[0], placeApps });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
+        /* Segment Control (Placement Tab Toggle) */
+        .segment-ctrl { display: inline-flex; background: var(--bg-app); border: 1px solid var(--border); border-radius: 8px; padding: 4px; }
+        .segment-btn { padding: 6px 16px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.2s; color: var(--text-muted); border: none; background: transparent; outline: none; display: flex; align-items: center; gap: 6px;}
+        .segment-btn:hover { color: var(--text-main); }
+        .segment-btn.active { background: white; color: var(--primary); box-shadow: var(--shadow-sm); }
 
-// --- CORE PROFILE EDIT ---
-app.post('/api/admin/update-field', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        const { targetEmail, field, value } = req.body;
-        const allowed = ['email', 'full_name', 'roll_no', 'department', 'cgpa', 'sgpa', 'attendance', 'reward_points', 'arrears', 'leaves'];
-        if (!allowed.includes(field)) return res.status(400).json({ success: false });
+        /* Directory Controls */
+        .dir-controls-wrapper { display: flex; gap: 16px; margin-bottom: 24px; }
+        .control-input { padding: 10px 16px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.9rem; font-weight: 500; outline: none; transition: all 0.2s; background: white; color: var(--text-main); box-shadow: var(--shadow-sm); }
+        .control-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+        .search-wrapper { position: relative; flex: 1; }
+        .search-wrapper i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .search-wrapper input { width: 100%; padding-left: 42px; }
 
-        if (field === 'email') {
-            await promisePool.query("SET FOREIGN_KEY_CHECKS=0");
-            await promisePool.query(`UPDATE student_profile SET email = ? WHERE LOWER(email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
-            await promisePool.query(`UPDATE student_courses SET student_email = ? WHERE LOWER(student_email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
-            await promisePool.query(`UPDATE student_skills SET student_email = ? WHERE LOWER(student_email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
-            await promisePool.query(`UPDATE student_sem_gpa SET student_email = ? WHERE LOWER(student_email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
-            await promisePool.query(`UPDATE placement_student_profile SET student_email = ? WHERE LOWER(student_email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
-            await promisePool.query(`UPDATE placement_apps SET student_email = ? WHERE LOWER(student_email) = LOWER(?)`, [value.toLowerCase(), targetEmail]);
-            await promisePool.query("SET FOREIGN_KEY_CHECKS=1");
-        } else {
-            await promisePool.query(`UPDATE student_profile SET ${field} = ? WHERE LOWER(email) = LOWER(?)`, [value, targetEmail]);
+        /* Directory Table */
+        .table-wrapper { background: white; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow-sm); }
+        .modern-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .modern-table th { padding: 12px 24px; color: var(--text-muted); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border); background: var(--bg-app); letter-spacing: 0.5px;}
+        .modern-table td { padding: 14px 24px; border-bottom: 1px solid var(--border); font-size: 0.85rem; font-weight: 500; color: var(--text-main); }
+        .dir-row { transition: background 0.2s; cursor: pointer; }
+        .dir-row:hover { background: var(--bg-app); }
+        .dir-row:last-child td { border-bottom: none; }
+
+        /* DASHBOARD LAYOUT */
+        .dash-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 24px; }
+        .profile-hero { display: flex; align-items: center; gap: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px;}
+        .hero-img { width: 68px; height: 68px; border-radius: 50%; object-fit: cover; }
+        .profile-details { display: flex; gap: 40px; width: 100%; }
+        .detail-item { flex: 1; }
+        .detail-item > span { color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase; font-weight: 800; margin-bottom: 8px; letter-spacing: 0.5px;}
+        .detail-item .flex-center { color: var(--text-main); font-weight: 700; font-size: 0.95rem; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+        .stat-box { background: white; border: 1px solid var(--border); padding: 16px; border-radius: 10px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; transition: all 0.2s; }
+        .stat-box:hover { border-color: #CBD5E1; box-shadow: var(--shadow-md); transform: translateY(-2px); }
+        .stat-title { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .stat-val { font-size: 1.3rem; font-weight: 800; color: var(--text-main); display: flex; justify-content: space-between; align-items: center;}
+
+        .graph-container { position: relative; height: 260px; width: 100%; margin-top: 16px;}
+
+        /* Modern Skills Grid */
+        .skills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .skill-card { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 20px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; position: relative; transition: all 0.2s;}
+        .skill-card:hover { border-color: #CBD5E1; box-shadow: var(--shadow-md); transform: translateY(-2px); }
+        .skill-header { margin-bottom: 12px; }
+        .skill-title { font-weight: 700; font-size: 0.95rem; color: var(--text-main); display: flex; justify-content: space-between; align-items: center;}
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; background: var(--bg-app); color: var(--text-muted); border: 1px solid var(--border); width: fit-content;}
+        .badge-success { background: var(--success-light); color: var(--success); border: none;}
+        .badge-primary { background: var(--primary-light); color: var(--primary); border: none;}
+        .badge-warning { background: var(--warning-light); color: #B45309; border: none;}
+        .badge-danger { background: var(--danger-light); color: var(--danger); border: none;}
+
+        .progress-track { width: 100%; height: 6px; background: var(--bg-app); border-radius: 3px; margin: 16px 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
+        .skill-footer { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
+
+        /* Modern Academics Grid & Semester CGPA */
+        .academics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(450px, 1fr)); gap: 24px;}
+        .sem-card { background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm); }
+        .sem-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: #F8FAFC; border-bottom: 1px solid var(--border);}
+        .sem-title { font-size: 0.95rem; font-weight: 800; color: var(--text-main);}
+        
+        .sem-gpa-badge { display: flex; align-items: center; gap: 8px; background: white; border: 1px solid var(--border); padding: 4px 12px; border-radius: 8px; margin-left: 16px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);}
+        .sem-gpa-badge .lbl { font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
+        .sem-gpa-badge .val { font-size: 0.85rem; font-weight: 800; color: var(--primary); }
+
+        .clean-table { width: 100%; border-collapse: collapse; }
+        .clean-table th { text-align: left; padding: 12px 20px; font-size: 0.65rem; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); font-weight: 800; letter-spacing: 0.5px;}
+        .clean-table td { padding: 12px 20px; font-size: 0.8rem; border-bottom: 1px solid var(--bg-app); color: var(--text-main); font-weight: 600; transition: background 0.2s;}
+        .clean-table tr:last-child td { border-bottom: none; }
+        .clean-table tr:hover td { background: #F8FAFC; }
+
+        /* --- PROFESSIONAL ADMIN CONTROLS --- */
+        .admin-only { display: none; }
+        
+        .admin-table-edit { font-size: 0.8rem; color: #94A3B8; cursor: pointer; transition: all 0.2s ease; opacity: 0.3; padding: 6px; }
+        .admin-table-edit:hover { color: var(--primary); opacity: 1 !important; transform: scale(1.1); }
+        
+        .admin-table-del { color: var(--danger); cursor: pointer; transition: all 0.2s; opacity: 0.3; padding: 6px; font-size: 0.8rem; margin-left: 5px; }
+        .admin-table-del:hover { transform: scale(1.15); opacity: 1 !important; }
+
+        .detail-item:hover .admin-table-edit, .stat-box:hover .admin-table-edit, 
+        .sem-gpa-badge:hover .admin-table-edit,
+        tr:hover .admin-table-edit, tr:hover .admin-table-del,
+        .skill-card:hover .admin-table-edit, .skill-card:hover .admin-table-del { opacity: 1; }
+
+        .inline-input { 
+            border: 1.5px solid var(--primary); border-radius: 8px; 
+            font-size: 0.95rem; font-weight: 600; padding: 8px 12px; 
+            outline: none; background: white; color: var(--text-main); 
+            transition: all 0.2s; font-family: 'Inter', sans-serif;
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1);
         }
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
+        .inline-input:focus { border-color: var(--primary-hover); box-shadow: 0 0 0 4px var(--primary-light); }
+        
+        .action-icon { 
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; border-radius: 8px;
+            cursor: pointer; font-size: 0.9rem; transition: all 0.2s ease; margin-left: 6px; border: 1px solid transparent;
+        }
+        .action-icon.save { background: var(--success-bg); color: var(--success); border-color: #A7F3D0; }
+        .action-icon.save:hover { background: var(--success); color: white; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2); border-color: var(--success); }
+        .action-icon.cancel { background: var(--danger-bg); color: var(--danger); border-color: #FECACA; }
+        .action-icon.cancel:hover { background: var(--danger); color: white; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2); border-color: var(--danger);}
+        
+        #admin-badge { background: var(--warning-light); color: var(--warning); padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: 800; display: none; align-items: center; gap: 6px; margin-left: 16px;}
 
-app.post('/api/admin/update-sem-gpa', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        const { targetEmail, semester, gpa } = req.body;
-        await promisePool.query("INSERT INTO student_sem_gpa (student_email, semester, gpa) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE gpa = VALUES(gpa)", [targetEmail.toLowerCase(), semester, gpa]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
+        /* Modals */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 100%; max-width: 440px; border-radius: 16px; padding: 28px; box-shadow: var(--shadow-lg); animation: scaleUp 0.2s ease-out; }
+        @keyframes scaleUp { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+        .modal-input { width: 100%; padding: 10px 14px; margin-bottom: 16px; border-radius: 8px; border: 1px solid var(--border); font-weight: 500; font-size: 0.85rem; outline: none; transition: border-color 0.2s; background: var(--bg-app);}
+        .modal-input:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px var(--primary-light); }
+    </style>
+</head>
+<body>
 
-// --- PLACEMENT EDIT ROUTES ---
-app.post('/api/admin/update-global-stat', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        await promisePool.query(`UPDATE placement_global SET ${req.body.field} = ? WHERE id = 1`, [req.body.value]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
+    <div id="login-view">
+        <div class="login-card">
+            <div class="login-logo"><i class="fa-solid fa-layer-group"></i></div>
+            <h2 style="margin-bottom: 8px; font-weight: 800; font-size: 1.4rem; color: var(--text-main);">Enterprise Portal</h2>
+            <p style="color: var(--text-muted); margin-bottom: 32px; font-weight: 500; font-size: 0.85rem;">Secure access for Staff & Students</p>
+            <div style="display: flex; justify-content: center;"><div id="g_id_signin"></div></div>
+            <div id="error-msg" style="display: none; color: var(--danger); margin-top: 16px; font-weight: 600; font-size: 0.8rem;"></div>
+        </div>
+    </div>
 
-app.post('/api/admin/add-drive', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        const { company, role, appeared, selected, ctc } = req.body;
-        await promisePool.query("INSERT INTO placement_drives (company, role, appeared, selected, ctc) VALUES (?, ?, ?, ?, ?)", [company, role, appeared, selected, ctc]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-app.post('/api/admin/update-drive', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        await promisePool.query(`UPDATE placement_drives SET ${req.body.field} = ? WHERE id = ?`, [req.body.value, req.body.id]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-app.post('/api/admin/delete-drive', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        await promisePool.query("DELETE FROM placement_drives WHERE id = ?", [req.body.id]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
+    <aside class="sidebar">
+        <div class="brand"><i class="fa-solid fa-code"></i> BIT Sathy IT</div>
+        <div class="nav-menu">
+            <a class="nav-item admin-only" id="nav-dir" onclick="switchTab('directory', this)"><i class="fa-solid fa-users"></i> Staff Directory</a>
+            <a class="nav-item" id="nav-dash" onclick="switchTab('dashboard', this)"><i class="fa-solid fa-chart-pie"></i> Dashboard Overview</a>
+            <a class="nav-item" id="nav-act" onclick="switchTab('activities', this)"><i class="fa-solid fa-rocket"></i> PCDP Activities</a>
+            <a class="nav-item" id="nav-acad" onclick="switchTab('academics', this)"><i class="fa-solid fa-book-open"></i> Academic Records</a>
+            <a class="nav-item" id="nav-place" onclick="switchTab('placement', this)"><i class="fa-solid fa-briefcase"></i> Placement Hub</a>
+        </div>
+        <div class="nav-bottom">
+            <a class="nav-item" style="color: var(--danger);" onclick="signOut()"><i class="fa-solid fa-power-off"></i> Secure Logout</a>
+        </div>
+    </aside>
 
-app.post('/api/admin/update-placement-profile', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        const { targetEmail, field, value } = req.body;
-        await promisePool.query(`INSERT IGNORE INTO placement_student_profile (student_email) VALUES (?)`, [targetEmail.toLowerCase()]);
-        await promisePool.query(`UPDATE placement_student_profile SET ${field} = ? WHERE student_email = ?`, [value, targetEmail.toLowerCase()]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
+    <main class="main-content">
+        <header class="top-header">
+            <div style="display: flex; align-items: center;">
+                <button class="action-btn btn-outline" onclick="location.reload()" style="padding: 6px 12px; font-size: 0.75rem;"><i class="fa-solid fa-rotate-right"></i> Sync Data</button>
+                <div id="admin-badge"><i class="fa-solid fa-circle-dot fa-fade"></i> ADMIN MODE</div>
+            </div>
+            <div class="user-profile">
+                <div class="user-info">
+                    <div class="user-name" id="headerName">--</div>
+                    <div class="user-email" id="headerEmail">--</div>
+                </div>
+                <img id="headerImage" src="" class="profile-img">
+            </div>
+        </header>
 
-app.post('/api/admin/add-app', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        const { targetEmail, company, role, date_applied, status } = req.body;
-        await promisePool.query("INSERT INTO placement_apps (student_email, company, role, date_applied, status) VALUES (?, ?, ?, ?, ?)", [targetEmail.toLowerCase(), company, role, date_applied, status]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-app.post('/api/admin/update-app', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        await promisePool.query(`UPDATE placement_apps SET ${req.body.field} = ? WHERE id = ?`, [req.body.value, req.body.id]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-app.post('/api/admin/delete-app', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        await promisePool.query("DELETE FROM placement_apps WHERE id = ?", [req.body.id]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
+        <div class="scrollable-area">
+            
+            <div id="view-directory" class="view-section">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px;">
+                    <div>
+                        <h1 class="page-title">Student Directory</h1>
+                        <p style="color: var(--text-muted); margin-top: 6px; font-size: 0.85rem;">Centralized management for all student records.</p>
+                    </div>
+                    <button class="action-btn btn-primary" onclick="openModal('add-modal')"><i class="fa-solid fa-user-plus"></i> Add Student</button>
+                </div>
+                
+                <div class="dir-controls-wrapper">
+                    <div class="search-wrapper">
+                        <i class="fa-solid fa-search"></i>
+                        <input type="text" id="dirSearch" class="control-input" placeholder="Search by name, email, or roll no..." oninput="filterDirectory()">
+                    </div>
+                    <select id="dirFilter" class="control-input" onchange="filterDirectory()" style="min-width: 180px; cursor: pointer;">
+                        <option value="ALL">All Departments</option>
+                    </select>
+                </div>
 
-// SUB-TABLE ROUTES
-app.post('/api/admin/add-student', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        const { email, full_name, roll_no, department } = req.body;
-        const sql = `INSERT INTO student_profile (email, full_name, roll_no, department) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE full_name=VALUES(full_name), roll_no=VALUES(roll_no), department=VALUES(department)`;
-        await promisePool.query(sql, [email.toLowerCase(), full_name, roll_no, department]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-app.post('/api/admin/add-skill', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        await promisePool.query("INSERT INTO student_skills (student_email, skill_name, total_levels, completed_levels, category) VALUES (?, ?, ?, ?, ?)", [req.body.targetEmail, req.body.skill_name, req.body.total_levels, req.body.completed_levels, req.body.category]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-app.post('/api/admin/update-skill', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        await promisePool.query(`UPDATE student_skills SET ${req.body.field} = ? WHERE id = ?`, [req.body.value, req.body.id]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-app.post('/api/admin/delete-skill', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        await promisePool.query("DELETE FROM student_skills WHERE id = ?", [req.body.id]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-app.post('/api/admin/add-course', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        await promisePool.query("INSERT INTO student_courses (student_email, semester, course_name, marks, grade) VALUES (?, ?, ?, ?, ?)", [req.body.targetEmail, req.body.semester, req.body.course_name, req.body.marks, req.body.grade]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-app.post('/api/admin/update-course', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        await promisePool.query(`UPDATE student_courses SET ${req.body.field} = ? WHERE id = ?`, [req.body.value, req.body.id]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-app.post('/api/admin/delete-course', async (req, res) => {
-    try {
-        await verifyAdmin(req.body.adminToken);
-        await promisePool.query("DELETE FROM student_courses WHERE id = ?", [req.body.id]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
+                <div class="table-wrapper">
+                    <table class="modern-table">
+                        <thead><tr><th>Student Name</th><th>Email Address</th><th>Roll Number</th><th>Department</th><th></th></tr></thead>
+                        <tbody id="directoryBody"></tbody>
+                    </table>
+                </div>
+            </div>
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`UNIFIED BACKEND ACTIVE ON PORT ${PORT}`));
+            <div id="view-dashboard" class="view-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h1 class="page-title">Overview</h1>
+                    <button class="action-btn btn-outline admin-only" style="font-size: 0.75rem;" onclick="backToDirectory()"><i class="fa-solid fa-arrow-left"></i> Return to Directory</button>
+                </div>
+                
+                <div class="dash-grid">
+                    <div class="card" style="margin: 0; padding: 24px 32px;">
+                        <div class="profile-hero">
+                            <img id="cardProfileImg" src="" class="hero-img">
+                            <div style="text-align: left;">
+                                <h3 id="cardProfileName" style="font-weight: 800; font-size: 1.3rem; margin-bottom: 6px; color: var(--text-main);">--</h3>
+                                <span class="badge badge-success">Active Student</span>
+                            </div>
+                        </div>
+                        <div class="profile-details">
+                            <div class="detail-item">
+                                <span>Google Mail ID</span>
+                                <div class="flex-center" id="wrap-email">
+                                    <span id="val-email" style="word-break: break-all; color: var(--primary);">--</span>
+                                    <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openProfileEdit('email', 'val-email', '100%')"></i>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <span>Roll Number</span>
+                                <div class="flex-center" id="wrap-roll_no">
+                                    <span id="val-roll_no">--</span>
+                                    <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openProfileEdit('roll_no', 'val-roll_no', '160px')"></i>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <span>Department</span>
+                                <div class="flex-center" id="wrap-department">
+                                    <span id="val-department" style="color: var(--primary);">--</span>
+                                    <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openProfileEdit('department', 'val-department', '220px')"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-box" style="background: var(--primary-light); border-color: transparent;">
+                            <div class="stat-title" style="color: var(--primary);">Current CGPA</div>
+                            <div class="stat-val" style="color: var(--primary);" id="wrap-cgpa">
+                                <span id="val-cgpa">--</span>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openProfileEdit('cgpa', 'val-cgpa', '90px')" style="margin-left: auto;"></i>
+                            </div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-title">Current SGPA</div>
+                            <div class="stat-val" id="wrap-sgpa">
+                                <span id="val-sgpa">--</span>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openProfileEdit('sgpa', 'val-sgpa', '90px')" style="margin-left: auto;"></i>
+                            </div>
+                        </div>
+                        <div class="stat-box" style="background: var(--success-light); border-color: transparent;">
+                            <div class="stat-title" style="color: var(--success);">Attendance</div>
+                            <div class="stat-val" style="color: var(--success);" id="wrap-attendance">
+                                <div class="flex-center"><span id="val-attendance">--</span><span style="font-size:0.9rem; opacity:0.8;">%</span></div>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openProfileEdit('attendance', 'val-attendance', '90px')" style="margin-left: auto;"></i>
+                            </div>
+                        </div>
+                        <div class="stat-box" style="background: var(--warning-light); border-color: transparent;">
+                            <div class="stat-title" style="color: #B45309;">Reward Pts</div>
+                            <div class="stat-val" style="color: #B45309;" id="wrap-reward_points">
+                                <span id="val-reward_points">--</span>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openProfileEdit('reward_points', 'val-reward_points', '90px')" style="margin-left: auto;"></i>
+                            </div>
+                        </div>
+                        <div class="stat-box" style="background: var(--danger-light); border-color: transparent;">
+                            <div class="stat-title" style="color: #B91C1C;">Arrears</div>
+                            <div class="stat-val" style="color: #B91C1C;" id="wrap-arrears">
+                                <span id="val-arrears">--</span>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openProfileEdit('arrears', 'val-arrears', '90px')" style="margin-left: auto;"></i>
+                            </div>
+                        </div>
+                        <div class="stat-box" style="background: var(--purple-light); border-color: transparent;">
+                            <div class="stat-title" style="color: #6D28D9;">Leaves</div>
+                            <div class="stat-val" style="color: #6D28D9;" id="wrap-leaves">
+                                <span id="val-leaves">--</span>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openProfileEdit('leaves', 'val-leaves', '90px')" style="margin-left: auto;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="padding: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h3 style="font-weight: 800; font-size: 1.05rem; color: var(--text-main); margin: 0;">Academic Performance Trend</h3>
+                        <div style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600;"><i class="fa-solid fa-chart-line"></i> Dynamic Semester GPA</div>
+                    </div>
+                    <div class="graph-container">
+                        <canvas id="gpaChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-activities" class="view-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h1 class="page-title">PCDP Dashboard</h1>
+                    <button class="action-btn btn-primary admin-only" onclick="openModal('add-skill-modal')"><i class="fa-solid fa-plus"></i> Add Skill</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px;">
+                    <div class="card" style="margin: 0; padding: 20px; display: flex; align-items: center; gap: 16px;">
+                        <div style="background: var(--primary-light); color: var(--primary); padding: 12px; border-radius: 10px; font-size: 1.1rem;"><i class="fa-solid fa-trophy"></i></div>
+                        <div><div style="color: var(--text-muted); font-size: 0.65rem; font-weight: 700; text-transform: uppercase;">Total Skills</div><div id="act-total-skills" style="font-size: 1.3rem; font-weight: 800; color: var(--text-main);">0</div></div>
+                    </div>
+                    <div class="card" style="margin: 0; padding: 20px; display: flex; align-items: center; gap: 16px;">
+                        <div style="background: var(--success-light); color: var(--success); padding: 12px; border-radius: 10px; font-size: 1.1rem;"><i class="fa-solid fa-check-double"></i></div>
+                        <div><div style="color: var(--text-muted); font-size: 0.65rem; font-weight: 700; text-transform: uppercase;">Mastered</div><div id="act-mastered" style="font-size: 1.3rem; font-weight: 800; color: var(--text-main);">0</div></div>
+                    </div>
+                    <div class="card" style="margin: 0; padding: 20px; display: flex; align-items: center; gap: 16px;">
+                        <div style="background: var(--warning-light); color: var(--warning); padding: 12px; border-radius: 10px; font-size: 1.1rem;"><i class="fa-solid fa-bars-progress"></i></div>
+                        <div><div style="color: var(--text-muted); font-size: 0.65rem; font-weight: 700; text-transform: uppercase;">In Progress</div><div id="act-progress" style="font-size: 1.3rem; font-weight: 800; color: var(--text-main);">0</div></div>
+                    </div>
+                </div>
+
+                <div class="skills-grid" id="skills-container"></div>
+            </div>
+
+            <div id="view-academics" class="view-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h1 class="page-title">Academic Transcript</h1>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="action-btn btn-success admin-only" onclick="openModal('add-course-modal')"><i class="fa-solid fa-plus"></i> Add Course</button>
+                        <button class="action-btn btn-outline"><i class="fa-solid fa-download"></i> Export PDF</button>
+                    </div>
+                </div>
+                <div class="academics-grid" id="academics-container"></div>
+            </div>
+
+            <div id="view-placement" class="view-section">
+                <div class="flex-between" style="margin-bottom: 24px; align-items: center;">
+                    <div>
+                        <h1 class="page-title">Placement Hub</h1>
+                        <p style="color: var(--text-muted); margin-top: 6px; font-size: 0.85rem;">Track global recruitment drives and personal career progress.</p>
+                    </div>
+                    <div class="segment-ctrl">
+                        <button class="segment-btn active" id="btn-global-placement" onclick="togglePlacementView('global')"><i class="fa-solid fa-globe"></i> Global Analytics</button>
+                        <button class="segment-btn" id="btn-my-placement" onclick="togglePlacementView('personal')"><i class="fa-solid fa-user-tie"></i> My Dashboard</button>
+                    </div>
+                </div>
+
+                <div id="placement-global" style="display: block; animation: subtleFadeIn 0.3s ease-out forwards;">
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px;">
+                        <div class="stat-box">
+                            <div class="stat-title">Total Placed</div>
+                            <div class="stat-val" style="color: var(--success);" id="wrap-g-total">
+                                <span id="val-g-total">--</span>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openGlobalStatEdit('total_placed', 'val-g-total', '90px')"></i>
+                            </div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-title">Ongoing Drives</div>
+                            <div class="stat-val" style="color: var(--primary);" id="wrap-g-ongoing">
+                                <span id="val-g-ongoing">--</span>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openGlobalStatEdit('ongoing_drives', 'val-g-ongoing', '90px')"></i>
+                            </div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-title">Highest CTC</div>
+                            <div class="stat-val" style="color: #B45309;" id="wrap-g-highest">
+                                <div><span id="val-g-highest">--</span> <span style="font-size: 0.8rem; color: var(--text-muted);">LPA</span></div>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openGlobalStatEdit('highest_ctc', 'val-g-highest', '90px')"></i>
+                            </div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-title">Average CTC</div>
+                            <div class="stat-val" id="wrap-g-avg">
+                                <div><span id="val-g-avg">--</span> <span style="font-size: 0.8rem; color: var(--text-muted);">LPA</span></div>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openGlobalStatEdit('avg_ctc', 'val-g-avg', '90px')"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <div class="flex-between" style="padding: 16px 24px; border-bottom: 1px solid var(--border); background: #F8FAFC;">
+                            <h3 style="font-size: 0.95rem; font-weight: 800; margin: 0; color: var(--text-main);">Campus Recruitment Drives</h3>
+                            <button class="action-btn btn-primary admin-only" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openModal('add-drive-modal')"><i class="fa-solid fa-plus"></i> Add Drive</button>
+                        </div>
+                        <table class="modern-table">
+                            <thead><tr><th>Company Name</th><th>Role Profile</th><th>Appeared</th><th>Selected</th><th>Salary Package</th><th class="admin-only"></th></tr></thead>
+                            <tbody id="global-drives-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="placement-personal" style="display: none; animation: subtleFadeIn 0.3s ease-out forwards;">
+                    <div class="card" style="background: linear-gradient(135deg, var(--primary), #3730A3); color: white; border: none; padding: 32px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span class="badge" style="background: rgba(255,255,255,0.2); color: white; border: none; margin-bottom: 12px;"><i class="fa-solid fa-star" style="color:#FDE047; margin-right:4px;"></i> PRIMARY OFFER</span>
+                            <div class="flex-center" id="wrap-p-role">
+                                <h2 id="val-p-role" style="font-size: 1.8rem; font-weight: 800; margin: 0 0 8px 0;">--</h2>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" style="color:white; opacity:0.6;" onclick="openPlacementProfileEdit('offer_role', 'val-p-role', '250px')"></i>
+                            </div>
+                            <div class="flex-center" id="wrap-p-comp" style="margin: 0; font-size: 0.95rem; opacity: 0.9;">
+                                <i class="fa-solid fa-building"></i> <span id="val-p-comp">--</span>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" style="color:white; opacity:0.6;" onclick="openPlacementProfileEdit('offer_company', 'val-p-comp', '180px')"></i>
+                            </div>
+                        </div>
+                        <div style="text-align: right;" id="wrap-p-ctc">
+                            <div style="font-size: 0.8rem; opacity: 0.8; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">Total CTC Offered</div>
+                            <div class="flex-center">
+                                <div style="font-size: 2.2rem; font-weight: 800;"><span id="val-p-ctc">--</span> <span style="font-size: 1.2rem; opacity: 0.8;">LPA</span></div>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" style="color:white; opacity:0.6;" onclick="openPlacementProfileEdit('offer_ctc', 'val-p-ctc', '100px')"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px;">
+                        <div class="stat-box">
+                            <div class="stat-title">Placement Status</div>
+                            <div class="stat-val flex-between" style="color: var(--primary);" id="wrap-p-status">
+                                <span id="val-p-status">--</span>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openPlacementProfileEdit('status', 'val-p-status', '120px')"></i>
+                            </div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-title">Assessments Cleared</div>
+                            <div class="stat-val flex-between" id="wrap-p-assess">
+                                <span id="val-p-assess">0</span>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openPlacementProfileEdit('assessments', 'val-p-assess', '80px')"></i>
+                            </div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-title">Interviews Attended</div>
+                            <div class="stat-val flex-between" style="color: var(--warning);" id="wrap-p-int">
+                                <span id="val-p-int">0</span>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openPlacementProfileEdit('interviews', 'val-p-int', '80px')"></i>
+                            </div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-title">Total Offers</div>
+                            <div class="stat-val flex-between" style="color: var(--success);" id="wrap-p-off">
+                                <span id="val-p-off">0</span>
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openPlacementProfileEdit('offers', 'val-p-off', '80px')"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dash-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="card" style="margin: 0;">
+                            <h3 style="font-size: 1rem; font-weight: 800; margin: 0 0 20px 0; color: var(--text-main);"><i class="fa-solid fa-code" style="color:var(--primary); margin-right:6px;"></i> Technical Readiness</h3>
+                            <div style="margin-bottom: 16px;">
+                                <div class="flex-between" style="margin-bottom: 8px; font-size: 0.85rem; font-weight: 600;" id="wrap-t-dsa">
+                                    <span>Data Structures & Algorithms</span> 
+                                    <div class="flex-center">
+                                        <span style="color: var(--primary);"><span id="val-t-dsa">0</span>%</span>
+                                        <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openPlacementProfileEdit('tech_dsa', 'val-t-dsa', '70px')"></i>
+                                    </div>
+                                </div>
+                                <div class="progress-track" style="margin: 0; height: 8px;"><div class="progress-fill" id="bar-t-dsa" style="width: 0%;"></div></div>
+                            </div>
+                            <div style="margin-bottom: 16px;">
+                                <div class="flex-between" style="margin-bottom: 8px; font-size: 0.85rem; font-weight: 600;" id="wrap-t-oop">
+                                    <span>Object Oriented Prog.</span> 
+                                    <div class="flex-center">
+                                        <span style="color: var(--primary);"><span id="val-t-oop">0</span>%</span>
+                                        <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openPlacementProfileEdit('tech_oop', 'val-t-oop', '70px')"></i>
+                                    </div>
+                                </div>
+                                <div class="progress-track" style="margin: 0; height: 8px;"><div class="progress-fill" id="bar-t-oop" style="width: 0%;"></div></div>
+                            </div>
+                            <div>
+                                <div class="flex-between" style="margin-bottom: 8px; font-size: 0.85rem; font-weight: 600;" id="wrap-t-core">
+                                    <span>Core CS Subjects (OS, DBMS)</span> 
+                                    <div class="flex-center">
+                                        <span style="color: var(--primary);"><span id="val-t-core">0</span>%</span>
+                                        <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openPlacementProfileEdit('tech_core', 'val-t-core', '70px')"></i>
+                                    </div>
+                                </div>
+                                <div class="progress-track" style="margin: 0; height: 8px;"><div class="progress-fill" id="bar-t-core" style="width: 0%;"></div></div>
+                            </div>
+                        </div>
+                        
+                        <div class="card" style="margin: 0;">
+                            <h3 style="font-size: 1rem; font-weight: 800; margin: 0 0 20px 0; color: var(--text-main);"><i class="fa-solid fa-comments" style="color:var(--success); margin-right:6px;"></i> Aptitude & Soft Skills</h3>
+                            <div style="margin-bottom: 16px;">
+                                <div class="flex-between" style="margin-bottom: 8px; font-size: 0.85rem; font-weight: 600;" id="wrap-a-quant">
+                                    <span>Quantitative Aptitude</span> 
+                                    <div class="flex-center">
+                                        <span style="color: var(--success);"><span id="val-a-quant">0</span>%</span>
+                                        <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openPlacementProfileEdit('apt_quant', 'val-a-quant', '70px')"></i>
+                                    </div>
+                                </div>
+                                <div class="progress-track" style="margin: 0; height: 8px;"><div class="progress-fill" id="bar-a-quant" style="width: 0%; background: var(--success);"></div></div>
+                            </div>
+                            <div style="margin-bottom: 16px;">
+                                <div class="flex-between" style="margin-bottom: 8px; font-size: 0.85rem; font-weight: 600;" id="wrap-a-log">
+                                    <span>Logical Reasoning</span> 
+                                    <div class="flex-center">
+                                        <span style="color: var(--success);"><span id="val-a-log">0</span>%</span>
+                                        <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openPlacementProfileEdit('apt_logical', 'val-a-log', '70px')"></i>
+                                    </div>
+                                </div>
+                                <div class="progress-track" style="margin: 0; height: 8px;"><div class="progress-fill" id="bar-a-log" style="width: 0%; background: var(--success);"></div></div>
+                            </div>
+                            <div>
+                                <div class="flex-between" style="margin-bottom: 8px; font-size: 0.85rem; font-weight: 600;" id="wrap-a-hr">
+                                    <span>Communication / HR</span> 
+                                    <div class="flex-center">
+                                        <span style="color: var(--warning);"><span id="val-a-hr">0</span>%</span>
+                                        <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openPlacementProfileEdit('apt_hr', 'val-a-hr', '70px')"></i>
+                                    </div>
+                                </div>
+                                <div class="progress-track" style="margin: 0; height: 8px;"><div class="progress-fill" id="bar-a-hr" style="width: 0%; background: var(--warning);"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <div class="flex-between" style="padding: 16px 24px; border-bottom: 1px solid var(--border); background: #F8FAFC;">
+                            <h3 style="font-size: 0.95rem; font-weight: 800; margin: 0; color: var(--text-main);">My Application Track Record</h3>
+                            <button class="action-btn btn-primary admin-only" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openModal('add-app-modal')"><i class="fa-solid fa-plus"></i> Add Application</button>
+                        </div>
+                        <table class="modern-table">
+                            <thead><tr><th>Company Name</th><th>Role Profile</th><th>Date Applied</th><th>Status / Result</th><th class="admin-only"></th></tr></thead>
+                            <tbody id="student-apps-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+            
+        </div>
+    </main>
+
+    <div id="add-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin:0; font-weight: 800; font-size: 1.15rem;">Register Student</h2>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted);" onclick="closeModal('add-modal')"></i>
+            </div>
+            <input type="email" id="new-email" class="modal-input" placeholder="Google Email (e.g. name@gmail.com)">
+            <input type="text" id="new-name" class="modal-input" placeholder="Full Student Name">
+            <input type="text" id="new-roll" class="modal-input" placeholder="Roll Number">
+            <input type="text" id="new-dept" class="modal-input" placeholder="Department">
+            <button class="action-btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="submitNewStudent()">Save to Database</button>
+        </div>
+    </div>
+
+    <div id="add-skill-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin:0; font-weight: 800; font-size: 1.15rem;">Add PCDP Skill</h2>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted);" onclick="closeModal('add-skill-modal')"></i>
+            </div>
+            <input type="text" id="sk-name" class="modal-input" placeholder="Skill Name (e.g., C-Programming)">
+            <input type="text" id="sk-cat" class="modal-input" placeholder="Category (e.g., Technical)">
+            <div style="display: flex; gap: 12px;">
+                <input type="number" id="sk-comp" class="modal-input" placeholder="Completed Levels">
+                <input type="number" id="sk-tot" class="modal-input" placeholder="Total Levels">
+            </div>
+            <button class="action-btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="submitNewSkill()">Add Skill</button>
+        </div>
+    </div>
+
+    <div id="add-course-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin:0; font-weight: 800; font-size: 1.15rem;">Add Course Mark</h2>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted);" onclick="closeModal('add-course-modal')"></i>
+            </div>
+            <input type="number" id="crs-sem" class="modal-input" placeholder="Semester (e.g., 1)">
+            <input type="text" id="crs-name" class="modal-input" placeholder="Subject Name">
+            <div style="display: flex; gap: 12px;">
+                <input type="number" id="crs-mark" class="modal-input" placeholder="Marks (out of 100)">
+                <input type="text" id="crs-grade" class="modal-input" placeholder="Grade (e.g., A)">
+            </div>
+            <button class="action-btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="submitNewCourse()">Save Subject</button>
+        </div>
+    </div>
+
+    <div id="add-drive-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex-between" style="margin-bottom: 20px;">
+                <h2 style="margin:0; font-weight: 800; font-size: 1.15rem;">Add Global Campus Drive</h2>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted);" onclick="closeModal('add-drive-modal')"></i>
+            </div>
+            <input type="text" id="drv-comp" class="modal-input" placeholder="Company Name (e.g., Google)">
+            <input type="text" id="drv-role" class="modal-input" placeholder="Role Profile (e.g., SDE)">
+            <div style="display: flex; gap: 12px;">
+                <input type="number" id="drv-app" class="modal-input" placeholder="Appeared">
+                <input type="number" id="drv-sel" class="modal-input" placeholder="Selected">
+            </div>
+            <input type="text" id="drv-ctc" class="modal-input" placeholder="Salary Package (e.g., 15.0 LPA)">
+            <button class="action-btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="submitNewDrive()">Save Drive</button>
+        </div>
+    </div>
+
+    <div id="add-app-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex-between" style="margin-bottom: 20px;">
+                <h2 style="margin:0; font-weight: 800; font-size: 1.15rem;">Log Student Application</h2>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted);" onclick="closeModal('add-app-modal')"></i>
+            </div>
+            <input type="text" id="app-comp" class="modal-input" placeholder="Company Name">
+            <input type="text" id="app-role" class="modal-input" placeholder="Role Applied For">
+            <div style="display: flex; gap: 12px;">
+                <input type="text" id="app-date" class="modal-input" placeholder="Date (e.g., Oct 12)">
+                <input type="text" id="app-stat" class="modal-input" placeholder="Status (e.g., Selected, Pending)">
+            </div>
+            <button class="action-btn btn-primary" style="width: 100%; margin-top: 8px;" onclick="submitNewApp()">Log Application</button>
+        </div>
+    </div>
+
+    <script>
+        let globalToken = "";
+        let isAdminMode = false;
+        let targetStudentEmail = "";
+        let originalValues = {};
+        let gpaChartInstance = null;
+        let allStudentsList = []; 
+
+        let loggedInName = "";
+        let loggedInEmail = "";
+        let loggedInPic = "";
+        
+        let currentGlobalStats = null;
+        let currentGlobalDrives = [];
+
+        function getAvatar(name) { return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=4F46E5&color=fff&bold=true&rounded=true`; }
+
+        function setTopHeader(name, email, pic) {
+            document.getElementById('headerName').innerText = name;
+            document.getElementById('headerEmail').innerText = email;
+            document.getElementById('headerImage').src = pic || getAvatar(name);
+        }
+
+        window.onload = () => {
+            google.accounts.id.initialize({ client_id: "318717217301-kot0gq3l7amhtfphhvsbjh4ehau9heb4.apps.googleusercontent.com", callback: handleLogin });
+            google.accounts.id.renderButton(document.getElementById("g_id_signin"), { theme: "filled_blue", size: "large", shape: "rectangular", width: 280 });
+
+            const savedToken = localStorage.getItem('bit_session_token');
+            if (savedToken) {
+                document.getElementById('g_id_signin').style.display = 'none';
+                document.getElementById('error-msg').style.color = 'var(--text-main)';
+                document.getElementById('error-msg').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Authenticating Session...';
+                document.getElementById('error-msg').style.display = 'block';
+                handleLogin({ credential: savedToken });
+            }
+        };
+
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            if(element) element.classList.add('active');
+            document.querySelectorAll('.view-section').forEach(view => view.classList.remove('active'));
+            document.getElementById('view-' + tabId).classList.add('active');
+        }
+
+        function togglePlacementView(viewType) {
+            document.getElementById('btn-global-placement').classList.remove('active');
+            document.getElementById('btn-my-placement').classList.remove('active');
+            if(viewType === 'global') {
+                document.getElementById('btn-global-placement').classList.add('active');
+                document.getElementById('placement-personal').style.display = 'none';
+                document.getElementById('placement-global').style.display = 'block';
+            } else {
+                document.getElementById('btn-my-placement').classList.add('active');
+                document.getElementById('placement-global').style.display = 'none';
+                document.getElementById('placement-personal').style.display = 'block';
+            }
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        async function handleLogin(response) {
+            globalToken = response.credential;
+            const errBox = document.getElementById('error-msg');
+            
+            try {
+                const req = await fetch('https://login-o753.onrender.com/api/auth', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: globalToken })
+                });
+                const data = await req.json();
+
+                if (data.isAdmin) {
+                    localStorage.setItem('bit_session_token', globalToken);
+                    document.getElementById('login-view').style.opacity = '0';
+                    setTimeout(() => document.getElementById('login-view').style.display = 'none', 400);
+
+                    isAdminMode = true;
+                    loggedInName = data.profile.full_name;
+                    loggedInEmail = data.profile.email;
+                    loggedInPic = data.profile.picture || getAvatar(loggedInName);
+                    currentGlobalStats = data.globalStats; currentGlobalDrives = data.globalDrives;
+                    
+                    const adminStyle = document.createElement('style');
+                    adminStyle.innerHTML = '.admin-only { display: flex !important; } button.admin-only { display: inline-flex !important; } i.admin-only { display: inline-flex !important; } td i.admin-only { display: inline-flex !important; } th.admin-only { display: table-cell !important; } td.admin-only { display: table-cell !important; }';
+                    document.head.appendChild(adminStyle);
+                    document.getElementById('admin-badge').style.display = 'flex';
+
+                    setTopHeader(loggedInName, loggedInEmail, loggedInPic); 
+
+                    if(targetStudentEmail) {
+                        loadStudentData(targetStudentEmail);
+                    } else {
+                        fetchDirectory();
+                    }
+
+                } else if (data.success) {
+                    localStorage.setItem('bit_session_token', globalToken);
+                    document.getElementById('login-view').style.opacity = '0';
+                    setTimeout(() => document.getElementById('login-view').style.display = 'none', 400);
+
+                    isAdminMode = false;
+                    loggedInName = data.profile.full_name;
+                    loggedInEmail = data.profile.email;
+                    loggedInPic = data.picture || getAvatar(loggedInName);
+                    currentGlobalStats = data.globalStats; currentGlobalDrives = data.globalDrives;
+                    
+                    document.getElementById('nav-dir').style.display = 'none';
+                    setTopHeader(loggedInName, loggedInEmail, loggedInPic);
+                    
+                    populateDashboard(data.profile, loggedInPic, data.courses, data.skills, data.semGpas);
+                    populatePlacementHub(data.placeProfile, data.placeApps);
+                    switchTab('dashboard', document.getElementById('nav-dash'));
+                } else { 
+                    localStorage.removeItem('bit_session_token');
+                    document.getElementById('g_id_signin').style.display = 'block';
+                    errBox.style.color = 'var(--danger)'; errBox.innerText = data.message; errBox.style.display = 'block'; 
+                }
+            } catch (e) { 
+                localStorage.removeItem('bit_session_token');
+                document.getElementById('g_id_signin').style.display = 'block';
+                errBox.style.color = 'var(--danger)'; errBox.innerText = "Connection Failed. Check network."; errBox.style.display = 'block'; 
+            }
+        }
+
+        async function fetchDirectory() {
+            const req = await fetch('https://login-o753.onrender.com/api/admin/list', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken })
+            });
+            const data = await req.json();
+            if (data.success) {
+                allStudentsList = data.students;
+                
+                const deptSelect = document.getElementById('dirFilter');
+                const depts = [...new Set(allStudentsList.map(s => s.department).filter(d => d))];
+                deptSelect.innerHTML = '<option value="ALL">All Departments</option>';
+                depts.forEach(d => { deptSelect.innerHTML += `<option value="${d}">${d}</option>`; });
+
+                renderDirectoryTable(allStudentsList);
+                populatePlacementHub(null, null); // Render globals
+                switchTab('directory', document.getElementById('nav-dir'));
+            }
+        }
+
+        function renderDirectoryTable(students) {
+            const tbody = document.getElementById('directoryBody');
+            if(students.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">No students found matching your criteria.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = students.map(s => {
+                return `
+                <tr class="dir-row" onclick="loadStudentData('${s.email}')">
+                    <td style="font-weight:600; color: var(--text-main); padding-left: 24px;">${s.full_name}</td>
+                    <td style="color:var(--text-muted);">${s.email}</td>
+                    <td style="font-family: monospace; font-size: 0.95rem;">${s.roll_no || '--'}</td>
+                    <td><span class="badge badge-primary">${s.department || '--'}</span></td>
+                    <td style="text-align: right; color: #CBD5E1; padding-right: 24px;"><i class="fa-solid fa-chevron-right"></i></td>
+                </tr>
+            `}).join('');
+        }
+
+        function filterDirectory() {
+            const searchTerm = document.getElementById('dirSearch').value.toLowerCase();
+            const selectedDept = document.getElementById('dirFilter').value;
+
+            const filtered = allStudentsList.filter(s => {
+                const matchesSearch = (s.full_name && s.full_name.toLowerCase().includes(searchTerm)) || 
+                                      (s.email && s.email.toLowerCase().includes(searchTerm)) ||
+                                      (s.roll_no && s.roll_no.toLowerCase().includes(searchTerm));
+                const matchesDept = selectedDept === "ALL" || s.department === selectedDept;
+                return matchesSearch && matchesDept;
+            });
+            renderDirectoryTable(filtered);
+        }
+
+        async function loadStudentData(email) {
+            targetStudentEmail = email;
+            const req = await fetch('https://login-o753.onrender.com/api/admin/student-data', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ adminToken: globalToken, targetEmail: email })
+            });
+            const data = await req.json();
+            if (data.success) { 
+                const studentAvatar = getAvatar(data.profile.full_name);
+                populateDashboard(data.profile, studentAvatar, data.courses, data.skills, data.semGpas); 
+                populatePlacementHub(data.placeProfile, data.placeApps);
+                
+                let activeTab = document.querySelector('.nav-item.active');
+                if(!activeTab || activeTab.id === 'nav-dir') switchTab('dashboard', document.getElementById('nav-dash'));
+            }
+        }
+
+        function backToDirectory() { targetStudentEmail = ""; fetchDirectory(); }
+        function signOut() { localStorage.removeItem('bit_session_token'); location.reload(); }
+
+        function quickAddCourse(semNumber) {
+            document.getElementById('crs-sem').value = semNumber;
+            document.getElementById('crs-name').value = ''; document.getElementById('crs-mark').value = ''; document.getElementById('crs-grade').value = '';
+            openModal('add-course-modal');
+        }
+
+        function renderChart(courses, semGpas) {
+            const ctx = document.getElementById('gpaChart').getContext('2d');
+            let labels = []; let dataPoints = [];
+
+            let gpaMap = {};
+            if(semGpas) semGpas.forEach(g => gpaMap[g.semester] = g.gpa);
+
+            if (courses && courses.length > 0) {
+                let semData = {};
+                courses.forEach(c => {
+                    if (!semData[c.semester]) semData[c.semester] = { total: 0, count: 0 };
+                    let pts = 0;
+                    if(c.grade.includes('O')) pts = 10; else if(c.grade === 'A+') pts = 9; else if(c.grade === 'A') pts = 8;
+                    else if(c.grade === 'B+') pts = 7; else if(c.grade === 'B') pts = 6; else if(c.grade === 'C') pts = 5;
+                    semData[c.semester].total += pts; semData[c.semester].count += 1;
+                });
+                
+                Object.keys(semData).sort((a,b) => a-b).forEach(sem => {
+                    labels.push(`Sem ${sem}`); 
+                    if(gpaMap[sem] && gpaMap[sem] !== '--') {
+                        dataPoints.push(parseFloat(gpaMap[sem]));
+                    } else {
+                        dataPoints.push((semData[sem].total / semData[sem].count).toFixed(2));
+                    }
+                });
+            } else { labels = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6']; dataPoints = [0,0,0,0,0,0]; }
+
+            if (gpaChartInstance) gpaChartInstance.destroy(); 
+            let gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.15)'); gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
+
+            gpaChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels: labels, datasets: [{ label: 'Avg SGPA', data: dataPoints, borderColor: '#4F46E5', backgroundColor: gradient, borderWidth: 3, pointBackgroundColor: '#FFF', pointBorderColor: '#4F46E5', pointBorderWidth: 2, pointRadius: 4, fill: true, tension: 0.3 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0F172A', padding: 10, cornerRadius: 8, titleFont: { family: 'Inter', size: 12 }, bodyFont: { family: 'Inter', size: 13, weight: 'bold' } } }, scales: { y: { min: 0, max: 10, grid: { color: '#F1F5F9' }, border: {display: false}, ticks: { font: {family: 'Inter'} } }, x: { grid: { display: false }, border: {display: false}, ticks: { font: {family: 'Inter'} } } }, interaction: { mode: 'index', intersect: false } }
+            });
+        }
+
+        function populateDashboard(p, img, courses, skills, semGpas) {
+            document.getElementById('cardProfileName').innerText = p.full_name;
+            document.getElementById('cardProfileImg').src = img || getAvatar(p.full_name);
+            
+            document.getElementById('val-email').innerText = p.email;
+            document.getElementById('val-roll_no').innerText = p.roll_no || '--';
+            document.getElementById('val-department').innerText = p.department || '--';
+            
+            document.getElementById('val-cgpa').innerText = parseFloat(p.cgpa).toFixed(2);
+            document.getElementById('val-sgpa').innerText = parseFloat(p.sgpa || 0).toFixed(2);
+            document.getElementById('val-attendance').innerText = p.attendance;
+            document.getElementById('val-reward_points').innerText = p.reward_points;
+            document.getElementById('val-arrears').innerText = p.arrears;
+            document.getElementById('val-leaves').innerText = p.leaves;
+
+            renderChart(courses, semGpas);
+
+            if(skills && skills.length > 0) {
+                document.getElementById('act-total-skills').innerText = skills.length;
+                document.getElementById('act-mastered').innerText = skills.filter(s => s.completed_levels >= s.total_levels).length;
+                document.getElementById('act-progress').innerText = skills.filter(s => s.completed_levels < s.total_levels).length;
+
+                document.getElementById('skills-container').innerHTML = skills.map(s => {
+                    let pct = Math.round((s.completed_levels / s.total_levels) * 100) || 0;
+                    return `
+                    <div class="skill-card" id="card-sk-${s.id}">
+                        <div class="skill-header flex-between">
+                            <div class="skill-title"><span id="sk-n-${s.id}">${s.skill_name}</span></div>
+                            <div style="display:flex; align-items: center; gap:4px;">
+                                <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="editSkillCard(${s.id}, '${s.skill_name.replace(/'/g, "\\'")}', ${s.completed_levels}, ${s.total_levels})"></i>
+                                <i class="fa-solid fa-trash admin-table-del admin-only" onclick="deleteSkill(${s.id})"></i>
+                            </div>
+                        </div>
+                        <div class="badge" style="margin-bottom: 12px;">${s.category || 'General'}</div>
+                        <div class="progress-track"><div class="progress-fill" style="width: ${pct}%;"></div></div>
+                        <div class="skill-footer flex-between">
+                            <div class="flex-center">
+                                <i class="fa-solid fa-layer-group" style="color: var(--primary);"></i> 
+                                <span id="sk-c-${s.id}" style="color: var(--text-main); font-weight:800;">${s.completed_levels}</span> / <span id="sk-t-${s.id}">${s.total_levels}</span> Lvl
+                            </div>
+                            <div style="color: var(--primary); font-weight: 800;">${pct}%</div>
+                        </div>
+                    </div>`;
+                }).join('');
+            } else { 
+                document.getElementById('act-total-skills').innerText = "0"; document.getElementById('act-mastered').innerText = "0"; document.getElementById('act-progress').innerText = "0";
+                document.getElementById('skills-container').innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color:var(--text-muted); font-weight: 500; border: 1px dashed var(--border); border-radius: 12px;">No PCDP activities logged yet.</div>`; 
+            }
+
+            if(courses && courses.length > 0) {
+                let sems = {};
+                courses.forEach(c => { if(!sems[c.semester]) sems[c.semester]=[]; sems[c.semester].push(c); });
+                
+                let gpaMap = {};
+                if (semGpas) semGpas.forEach(g => gpaMap[g.semester] = g.gpa);
+
+                document.getElementById('academics-container').innerHTML = Object.keys(sems).sort((a,b)=>b-a).map(sem => {
+                    let semGpaVal = gpaMap[sem] || '--';
+                    return `
+                    <div class="sem-card">
+                        <div class="sem-header">
+                            <div class="flex-center">
+                                <div class="sem-title">Semester ${sem}</div>
+                                <div class="sem-gpa-badge">
+                                    <span class="lbl">GPA</span>
+                                    <div id="wrap-semgpa-${sem}" class="flex-center">
+                                        <span id="val-semgpa-${sem}" class="val">${semGpaVal}</span>
+                                        <i class="fa-solid fa-pen admin-table-edit admin-only" style="padding: 2px;" onclick="openSemGpaEdit(${sem})"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="action-btn btn-outline admin-only" style="padding: 4px 10px; font-size:0.75rem;" onclick="quickAddCourse(${sem})"><i class="fa-solid fa-plus"></i> Add Subject</button>
+                        </div>
+                        <table class="clean-table">
+                            <thead><tr><th style="padding-left:24px;">Subject</th><th>Marks</th><th>Grade</th><th></th></tr></thead>
+                            <tbody>${sems[sem].map(c => `
+                            <tr id="row-crs-${c.id}">
+                                <td style="padding-left:24px; color: var(--text-main); font-weight: 600;">${c.course_name}</td>
+                                <td style="color: var(--primary); font-weight: 700; font-family: monospace; font-size:0.9rem;">${c.marks || '--'}</td>
+                                <td><span class="badge ${c.grade && (c.grade.includes('A')||c.grade==='O')?'badge-success':'badge-primary'}">${c.grade || '--'}</span></td>
+                                <td style="text-align:right; padding-right:24px;">
+                                    <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="editCourseRow(${c.id}, '${c.course_name.replace(/'/g, "\\'")}', '${c.marks}', '${c.grade}')"></i>
+                                    <i class="fa-solid fa-trash admin-table-del admin-only" onclick="deleteCourse(${c.id})"></i>
+                                </td>
+                            </tr>`).join('')}</tbody>
+                        </table>
+                    </div>
+                `}).join('');
+            } else { document.getElementById('academics-container').innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color:var(--text-muted); font-size:0.85rem; border: 1px dashed var(--border); border-radius: 12px;">No academic records found.</div>`; }
+        }
+
+        // --- RENDER PLACEMENT HUB ---
+        function populatePlacementHub(pProfile, pApps) {
+            // Global
+            const gStats = currentGlobalStats || {};
+            document.getElementById('val-g-total').innerText = gStats.total_placed || '0';
+            document.getElementById('val-g-ongoing').innerText = gStats.ongoing_drives || '0';
+            document.getElementById('val-g-highest').innerText = gStats.highest_ctc || '0';
+            document.getElementById('val-g-avg').innerText = gStats.avg_ctc || '0';
+
+            const drvBody = document.getElementById('global-drives-tbody');
+            if (currentGlobalDrives && currentGlobalDrives.length > 0) {
+                drvBody.innerHTML = currentGlobalDrives.map(d => `
+                <tr id="row-drv-${d.id}">
+                    <td style="font-weight: 700; color: var(--text-main);">${d.company}</td>
+                    <td>${d.role}</td>
+                    <td style="font-family: monospace;">${d.appeared}</td>
+                    <td><span class="badge badge-success">${d.selected}</span></td>
+                    <td style="font-weight: 700; color: var(--primary);">${d.ctc}</td>
+                    <td class="admin-only" style="text-align:right; padding-right: 24px; white-space:nowrap;">
+                        <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="editDriveRow(${d.id}, '${d.company.replace(/'/g, "\\'")}', '${d.role.replace(/'/g, "\\'")}', '${d.appeared}', '${d.selected}', '${d.ctc}')"></i>
+                        <i class="fa-solid fa-trash admin-table-del admin-only" onclick="deleteDrive(${d.id})"></i>
+                    </td>
+                </tr>`).join('');
+            } else { drvBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 30px; color:var(--text-muted);">No campus drives recorded.</td></tr>`; }
+
+            // Personal (Only render if looking at a student)
+            if(!pProfile) return;
+            
+            const prf = pProfile || {};
+            document.getElementById('val-p-role').innerText = prf.offer_role || '--';
+            document.getElementById('val-p-comp').innerText = prf.offer_company || '--';
+            document.getElementById('val-p-ctc').innerText = prf.offer_ctc || '--';
+            document.getElementById('val-p-status').innerText = prf.status || 'Unplaced';
+            document.getElementById('val-p-assess').innerText = prf.assessments || '0';
+            document.getElementById('val-p-int').innerText = prf.interviews || '0';
+            document.getElementById('val-p-off').innerText = prf.offers || '0';
+
+            const dsa = prf.tech_dsa || '0'; document.getElementById('val-t-dsa').innerText = dsa; document.getElementById('bar-t-dsa').style.width = `${dsa}%`;
+            const oop = prf.tech_oop || '0'; document.getElementById('val-t-oop').innerText = oop; document.getElementById('bar-t-oop').style.width = `${oop}%`;
+            const core = prf.tech_core || '0'; document.getElementById('val-t-core').innerText = core; document.getElementById('bar-t-core').style.width = `${core}%`;
+            const quant = prf.apt_quant || '0'; document.getElementById('val-a-quant').innerText = quant; document.getElementById('bar-a-quant').style.width = `${quant}%`;
+            const logical = prf.apt_logical || '0'; document.getElementById('val-a-log').innerText = logical; document.getElementById('bar-a-log').style.width = `${logical}%`;
+            const hr = prf.apt_hr || '0'; document.getElementById('val-a-hr').innerText = hr; document.getElementById('bar-a-hr').style.width = `${hr}%`;
+
+            const appBody = document.getElementById('student-apps-tbody');
+            if (pApps && pApps.length > 0) {
+                appBody.innerHTML = pApps.map(a => {
+                    let bClass = 'badge-primary';
+                    if(a.status.toLowerCase().includes('select') || a.status.toLowerCase().includes('offer')) bClass = 'badge-success';
+                    if(a.status.toLowerCase().includes('clear') || a.status.toLowerCase().includes('reject')) bClass = 'badge-danger';
+                    if(a.status.toLowerCase().includes('pend') || a.status.toLowerCase().includes('wait')) bClass = 'badge-warning';
+                    
+                    return `
+                    <tr id="row-app-${a.id}">
+                        <td style="font-weight: 700; color: var(--text-main);">${a.company}</td>
+                        <td style="color: var(--text-muted);">${a.role}</td>
+                        <td>${a.date_applied}</td>
+                        <td><span class="badge ${bClass}">${a.status}</span></td>
+                        <td class="admin-only" style="text-align:right; padding-right: 24px; white-space:nowrap;">
+                            <i class="fa-solid fa-pen admin-table-edit admin-only" onclick="editAppRow(${a.id}, '${a.company.replace(/'/g, "\\'")}', '${a.role.replace(/'/g, "\\'")}', '${a.date_applied}', '${a.status}')"></i>
+                            <i class="fa-solid fa-trash admin-table-del admin-only" onclick="deleteApp(${a.id})"></i>
+                        </td>
+                    </tr>`;
+                }).join('');
+            } else { appBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color:var(--text-muted);">No applications logged.</td></tr>`; }
+        }
+
+        // --- SUBMISSIONS ---
+        async function submitNewStudent() {
+            const email = document.getElementById('new-email').value, full_name = document.getElementById('new-name').value, roll_no = document.getElementById('new-roll').value, department = document.getElementById('new-dept').value;
+            if(!email || !full_name) return alert("Email and Name are required.");
+            const req = await fetch('https://login-o753.onrender.com/api/admin/add-student', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, email, full_name, roll_no, department }) });
+            if((await req.json()).success) { closeModal('add-modal'); handleLogin({credential: globalToken}); } else alert("Failed.");
+        }
+        async function submitNewSkill() {
+            const skill_name = document.getElementById('sk-name').value, category = document.getElementById('sk-cat').value, completed_levels = document.getElementById('sk-comp').value, total_levels = document.getElementById('sk-tot').value;
+            const req = await fetch('https://login-o753.onrender.com/api/admin/add-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, skill_name, category, completed_levels, total_levels }) });
+            if((await req.json()).success) { closeModal('add-skill-modal'); loadStudentData(targetStudentEmail); } else alert("Failed.");
+        }
+        async function submitNewCourse() {
+            const semester = document.getElementById('crs-sem').value, course_name = document.getElementById('crs-name').value, marks = document.getElementById('crs-mark').value, grade = document.getElementById('crs-grade').value;
+            const req = await fetch('https://login-o753.onrender.com/api/admin/add-course', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, semester, course_name, marks, grade }) });
+            if((await req.json()).success) { closeModal('add-course-modal'); loadStudentData(targetStudentEmail); } else alert("Failed.");
+        }
+        async function deleteSkill(id) { if(!confirm("Delete this skill?")) return; const req = await fetch('https://login-o753.onrender.com/api/admin/delete-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id }) }); if((await req.json()).success) loadStudentData(targetStudentEmail); }
+        async function deleteCourse(id) { if(!confirm("Delete this course?")) return; const req = await fetch('https://login-o753.onrender.com/api/admin/delete-course', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id }) }); if((await req.json()).success) loadStudentData(targetStudentEmail); }
+
+        async function submitNewDrive() {
+            const company = document.getElementById('drv-comp').value, role = document.getElementById('drv-role').value, appeared = document.getElementById('drv-app').value, selected = document.getElementById('drv-sel').value, ctc = document.getElementById('drv-ctc').value;
+            const req = await fetch('https://login-o753.onrender.com/api/admin/add-drive', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, company, role, appeared, selected, ctc }) });
+            if((await req.json()).success) { closeModal('add-drive-modal'); handleLogin({credential: globalToken}); } else alert("Failed.");
+        }
+        async function submitNewApp() {
+            const company = document.getElementById('app-comp').value, role = document.getElementById('app-role').value, date_applied = document.getElementById('app-date').value, status = document.getElementById('app-stat').value;
+            const req = await fetch('https://login-o753.onrender.com/api/admin/add-app', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, company, role, date_applied, status }) });
+            if((await req.json()).success) { closeModal('add-app-modal'); loadStudentData(targetStudentEmail); } else alert("Failed.");
+        }
+        async function deleteDrive(id) { if(!confirm("Delete this drive?")) return; const req = await fetch('https://login-o753.onrender.com/api/admin/delete-drive', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id }) }); if((await req.json()).success) handleLogin({credential: globalToken}); }
+        async function deleteApp(id) { if(!confirm("Delete application?")) return; const req = await fetch('https://login-o753.onrender.com/api/admin/delete-app', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id }) }); if((await req.json()).success) loadStudentData(targetStudentEmail); }
+
+        // --- INLINE EDITING LOGIC ---
+        function openProfileEdit(field, spanId, width) {
+            if (!isAdminMode) return; const span = document.getElementById(spanId); originalValues[spanId] = span.innerText.trim();
+            span.parentElement.innerHTML = `<div class="flex-center" style="width: 100%;"><input type="text" id="in-${spanId}" class="inline-input" style="width: ${width};" value="${originalValues[spanId]}"><i class="fa-solid fa-check action-icon save" onclick="saveProfileEdit('${field}', '${spanId}', '${width}')"></i><i class="fa-solid fa-xmark action-icon cancel" onclick="cancelProfileEdit('${spanId}', '${field}', '${width}')"></i></div>`;
+        }
+        function cancelProfileEdit(spanId, field, width) { document.getElementById(`in-${spanId}`).parentElement.innerHTML = `<span id="${spanId}" style="${field==='email'?'word-break:break-all;':''}">${originalValues[spanId]}</span><i class="fa-solid fa-pen admin-table-edit admin-only" onclick="openProfileEdit('${field}', '${spanId}', '${width}')"></i>`; }
+        async function saveProfileEdit(field, spanId, width) {
+            const val = document.getElementById(`in-${spanId}`).value; document.getElementById(`in-${spanId}`).parentElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i>`;
+            const req = await fetch('https://login-o753.onrender.com/api/admin/update-field', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, field, value: val }) });
+            const res = await req.json(); if (res.success) { if (field === 'email') targetStudentEmail = val; loadStudentData(targetStudentEmail); } else cancelProfileEdit(spanId, field, width);
+        }
+
+        function openSemGpaEdit(sem) {
+            if(!isAdminMode) return; const span = document.getElementById(`val-semgpa-${sem}`); const val = span.innerText === '--' ? '' : span.innerText;
+            span.parentElement.innerHTML = `<input type="text" id="in-semgpa-${sem}" class="inline-input" style="width: 60px; padding: 4px; font-size: 0.8rem;" value="${val}"><i class="fa-solid fa-check action-icon save" style="width:24px; height:24px; font-size:0.75rem;" onclick="saveSemGpa(${sem})"></i><i class="fa-solid fa-xmark action-icon cancel" style="width:24px; height:24px; font-size:0.75rem;" onclick="loadStudentData(targetStudentEmail)"></i>`;
+        }
+        async function saveSemGpa(sem) {
+            const val = document.getElementById(`in-semgpa-${sem}`).value; document.getElementById(`wrap-semgpa-${sem}`).innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:var(--primary); font-size:0.8rem;"></i>`;
+            await fetch('https://login-o753.onrender.com/api/admin/update-sem-gpa', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, semester: sem, gpa: val }) });
+            loadStudentData(targetStudentEmail);
+        }
+
+        function openGlobalStatEdit(field, spanId, width) {
+            if (!isAdminMode) return; const span = document.getElementById(spanId); originalValues[spanId] = span.innerText.trim();
+            span.parentElement.innerHTML = `<div class="flex-center"><input type="text" id="in-${spanId}" class="inline-input" style="width: ${width}; padding: 4px;" value="${originalValues[spanId]}"><i class="fa-solid fa-check action-icon save" style="width:28px; height:28px;" onclick="saveGlobalStat('${field}', '${spanId}', '${width}')"></i><i class="fa-solid fa-xmark action-icon cancel" style="width:28px; height:28px;" onclick="handleLogin({credential: globalToken})"></i></div>`;
+        }
+        async function saveGlobalStat(field, spanId, width) {
+            const val = document.getElementById(`in-${spanId}`).value; document.getElementById(`in-${spanId}`).parentElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i>`;
+            await fetch('https://login-o753.onrender.com/api/admin/update-global-stat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, field, value: val }) });
+            handleLogin({credential: globalToken});
+        }
+
+        function openPlacementProfileEdit(field, spanId, width) {
+            if (!isAdminMode) return; const span = document.getElementById(spanId); originalValues[spanId] = span.innerText.trim();
+            span.parentElement.innerHTML = `<div class="flex-center" style="width: 100%;"><input type="text" id="in-${spanId}" class="inline-input" style="width: ${width}; color: var(--text-main);" value="${originalValues[spanId]}"><i class="fa-solid fa-check action-icon save" style="width:28px; height:28px;" onclick="savePlacementProfileEdit('${field}', '${spanId}', '${width}')"></i><i class="fa-solid fa-xmark action-icon cancel" style="width:28px; height:28px;" onclick="loadStudentData(targetStudentEmail)"></i></div>`;
+        }
+        async function savePlacementProfileEdit(field, spanId, width) {
+            const val = document.getElementById(`in-${spanId}`).value; document.getElementById(`in-${spanId}`).parentElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i>`;
+            await fetch('https://login-o753.onrender.com/api/admin/update-placement-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, targetEmail: targetStudentEmail, field, value: val }) });
+            loadStudentData(targetStudentEmail);
+        }
+
+        function editDriveRow(id, comp, role, app, sel, ctc) {
+            if (!isAdminMode) return; const tr = document.getElementById(`row-drv-${id}`);
+            tr.innerHTML = `<td><input type="text" id="e-drv-c-${id}" class="inline-input" style="width: 100%;" value="${comp}"></td><td><input type="text" id="e-drv-r-${id}" class="inline-input" style="width: 100%;" value="${role}"></td><td><input type="number" id="e-drv-a-${id}" class="inline-input" style="width: 60px;" value="${app}"></td><td><input type="number" id="e-drv-s-${id}" class="inline-input" style="width: 60px;" value="${sel}"></td><td><input type="text" id="e-drv-ctc-${id}" class="inline-input" style="width: 80px;" value="${ctc}"></td><td style="text-align:right; white-space: nowrap;"><i class="fa-solid fa-check action-icon save" onclick="saveDriveRow(${id})"></i><i class="fa-solid fa-xmark action-icon cancel" onclick="handleLogin({credential: globalToken})"></i></td>`;
+        }
+        async function saveDriveRow(id) {
+            const tr = document.getElementById(`row-drv-${id}`); tr.lastElementChild.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i>`;
+            const p1 = fetch('https://login-o753.onrender.com/api/admin/update-drive', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'company', value: document.getElementById(`e-drv-c-${id}`).value }) });
+            const p2 = fetch('https://login-o753.onrender.com/api/admin/update-drive', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'role', value: document.getElementById(`e-drv-r-${id}`).value }) });
+            const p3 = fetch('https://login-o753.onrender.com/api/admin/update-drive', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'appeared', value: document.getElementById(`e-drv-a-${id}`).value }) });
+            const p4 = fetch('https://login-o753.onrender.com/api/admin/update-drive', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'selected', value: document.getElementById(`e-drv-s-${id}`).value }) });
+            const p5 = fetch('https://login-o753.onrender.com/api/admin/update-drive', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'ctc', value: document.getElementById(`e-drv-ctc-${id}`).value }) });
+            await Promise.all([p1, p2, p3, p4, p5]); handleLogin({credential: globalToken});
+        }
+
+        function editAppRow(id, comp, role, date, stat) {
+            if (!isAdminMode) return; const tr = document.getElementById(`row-app-${id}`);
+            tr.innerHTML = `<td><input type="text" id="e-app-c-${id}" class="inline-input" style="width: 100%;" value="${comp}"></td><td><input type="text" id="e-app-r-${id}" class="inline-input" style="width: 100%;" value="${role}"></td><td><input type="text" id="e-app-d-${id}" class="inline-input" style="width: 100px;" value="${date}"></td><td><input type="text" id="e-app-s-${id}" class="inline-input" style="width: 120px;" value="${stat}"></td><td style="text-align:right; white-space: nowrap;"><i class="fa-solid fa-check action-icon save" onclick="saveAppRow(${id})"></i><i class="fa-solid fa-xmark action-icon cancel" onclick="loadStudentData(targetStudentEmail)"></i></td>`;
+        }
+        async function saveAppRow(id) {
+            const tr = document.getElementById(`row-app-${id}`); tr.lastElementChild.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i>`;
+            const p1 = fetch('https://login-o753.onrender.com/api/admin/update-app', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'company', value: document.getElementById(`e-app-c-${id}`).value }) });
+            const p2 = fetch('https://login-o753.onrender.com/api/admin/update-app', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'role', value: document.getElementById(`e-app-r-${id}`).value }) });
+            const p3 = fetch('https://login-o753.onrender.com/api/admin/update-app', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'date_applied', value: document.getElementById(`e-app-d-${id}`).value }) });
+            const p4 = fetch('https://login-o753.onrender.com/api/admin/update-app', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'status', value: document.getElementById(`e-app-s-${id}`).value }) });
+            await Promise.all([p1, p2, p3, p4]); loadStudentData(targetStudentEmail);
+        }
+
+        function editCourseRow(id, name, marks, grade) {
+            if (!isAdminMode) return; const tr = document.getElementById(`row-crs-${id}`);
+            tr.innerHTML = `<td style="padding-left:24px;"><input type="text" id="edit-crs-n-${id}" class="inline-input" style="width: 100%; text-align:left;" value="${name}"></td><td><input type="number" id="edit-crs-m-${id}" class="inline-input" style="width: 70px;" value="${marks}"></td><td><input type="text" id="edit-crs-g-${id}" class="inline-input" style="width: 60px;" value="${grade}"></td><td style="text-align:right; padding-right:24px; white-space: nowrap;"><i class="fa-solid fa-check action-icon save" onclick="saveCourseRow(${id})"></i><i class="fa-solid fa-xmark action-icon cancel" onclick="loadStudentData(targetStudentEmail)"></i></td>`;
+        }
+        async function saveCourseRow(id) {
+            const tr = document.getElementById(`row-crs-${id}`); tr.lastElementChild.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color: var(--primary);"></i>`;
+            const p1 = fetch('https://login-o753.onrender.com/api/admin/update-course', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'course_name', value: document.getElementById(`edit-crs-n-${id}`).value }) });
+            const p2 = fetch('https://login-o753.onrender.com/api/admin/update-course', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'marks', value: document.getElementById(`edit-crs-m-${id}`).value }) });
+            const p3 = fetch('https://login-o753.onrender.com/api/admin/update-course', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'grade', value: document.getElementById(`edit-crs-g-${id}`).value }) });
+            await Promise.all([p1, p2, p3]); loadStudentData(targetStudentEmail);
+        }
+
+        function editSkillCard(id, name, comp, total) {
+            if (!isAdminMode) return; const card = document.getElementById(`card-sk-${id}`);
+            card.innerHTML = `<div style="margin-bottom:16px;"><input type="text" id="edit-sk-n-${id}" class="inline-input" style="width: 100%; text-align:left; font-size:0.95rem;" value="${name}"></div><div class="flex-center" style="margin-bottom: 20px;"><span style="font-size:0.7rem; font-weight:700; color:var(--text-muted);">CMP:</span><input type="number" id="edit-sk-c-${id}" class="inline-input" style="width: 60px;" value="${comp}"><span style="font-size:0.7rem; font-weight:700; color:var(--text-muted); margin-left:12px;">TOT:</span><input type="number" id="edit-sk-t-${id}" class="inline-input" style="width: 60px;" value="${total}"></div><div style="display:flex; justify-content: flex-end;"><i class="fa-solid fa-check action-icon save" onclick="saveSkillCard(${id})"></i><i class="fa-solid fa-xmark action-icon cancel" onclick="loadStudentData(targetStudentEmail)"></i></div>`;
+        }
+        async function saveSkillCard(id) {
+            const card = document.getElementById(`card-sk-${id}`); card.innerHTML = `<div style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin" style="color: var(--primary); font-size: 2rem;"></i></div>`;
+            const p1 = fetch('https://login-o753.onrender.com/api/admin/update-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'skill_name', value: document.getElementById(`edit-sk-n-${id}`).value }) });
+            const p2 = fetch('https://login-o753.onrender.com/api/admin/update-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'completed_levels', value: document.getElementById(`edit-sk-c-${id}`).value }) });
+            const p3 = fetch('https://login-o753.onrender.com/api/admin/update-skill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminToken: globalToken, id, field: 'total_levels', value: document.getElementById(`edit-sk-t-${id}`).value }) });
+            await Promise.all([p1, p2, p3]); loadStudentData(targetStudentEmail);
+        }
+    </script>
+</body>
+</html>
