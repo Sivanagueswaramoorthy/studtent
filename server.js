@@ -2,81 +2,96 @@ const express = require('express');
 const cors = require('cors');
 const { OAuth2Client } = require('google-auth-library');
 const mysql = require('mysql2');
-const path = require('path');
 
 const app = express();
 app.use(cors()); 
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
 
 const CLIENT_ID = "318717217301-kot0gq3l7amhtfphhvsbjh4ehau9heb4.apps.googleusercontent.com";
 const googleClient = new OAuth2Client(CLIENT_ID);
 
 const dbPool = mysql.createPool({
     host: 'mysql-32a5e69e-sivanagu7771-74ba.d.aivencloud.com',
-    port: 17949,           
-    user: 'avnadmin',         
-    password: 'AVNS_x5GIyjOoanVqXlKMi0w',         
-    database: 'defaultdb',
+    port: 17949, 
+    user: 'avnadmin', 
+    password: 'AVNS_x5GIyjOoanVqXlKMi0w',
+    database: 'defaultdb', 
     waitForConnections: true,
     connectionLimit: 10,
     ssl: { rejectUnauthorized: false } 
 });
 const promisePool = dbPool.promise();
 
-// LOGIN: Dashboard Data Retrieval
-app.post('/api/get-dashboard-data', async (req, res) => {
+// ==========================================
+// 1. SMART LOGIN ROUTE (Detects Admin vs Student)
+// ==========================================
+app.post('/api/auth', async (req, res) => {
     try {
         const ticket = await googleClient.verifyIdToken({ idToken: req.body.token, audience: CLIENT_ID });
-        const userEmail = ticket.getPayload().email; 
-        const [profile] = await promisePool.query("SELECT * FROM student_profile WHERE LOWER(email) = LOWER(?)", [userEmail]);
-        if (profile.length === 0) return res.status(404).json({ success: false, message: "Email not found." });
+        const email = ticket.getPayload().email;
+
+        // CHECK ADMIN ACCESS
+        if (email.toLowerCase() === 'sivanagu7771@gmail.com') {
+            return res.json({ 
+                success: true, 
+                isAdmin: true, 
+                profile: { full_name: ticket.getPayload().name, email: email, picture: ticket.getPayload().picture } 
+            });
+        }
+
+        // STANDARD STUDENT ACCESS
+        const [profile] = await promisePool.query("SELECT * FROM student_profile WHERE LOWER(email) = LOWER(?)", [email]);
+        if (profile.length === 0) return res.status(404).json({ success: false, message: "Student record not found." });
+
+        const [courses] = await promisePool.query("SELECT * FROM student_courses WHERE student_email = ? ORDER BY semester ASC", [profile[0].email]);
+        const [skills] = await promisePool.query("SELECT * FROM student_skills WHERE student_email = ?", [profile[0].email]);
         
-        const email = profile[0].email;
-        const [courses] = await promisePool.query("SELECT * FROM student_courses WHERE student_email = ?", [email]);
-        const [skills] = await promisePool.query("SELECT * FROM student_skills WHERE student_email = ?", [email]);
-        
-        res.json({ success: true, profile: profile[0], courses, skills, picture: ticket.getPayload().picture });
-    } catch (error) { res.status(500).json({ success: false }); }
+        res.json({ success: true, isAdmin: false, profile: profile[0], courses, skills, picture: ticket.getPayload().picture });
+    } catch (error) { res.status(500).json({ success: false, message: "Server authentication failed." }); }
 });
 
-// ADMIN: List All Students
-app.get('/api/admin/list-students', async (req, res) => {
+// ==========================================
+// 2. ADMIN SECURE ROUTES
+// ==========================================
+async function verifyAdmin(token) {
+    const ticket = await googleClient.verifyIdToken({ idToken: token, audience: CLIENT_ID });
+    if (ticket.getPayload().email.toLowerCase() !== 'sivanagu7771@gmail.com') throw new Error("Unauthorized");
+    return true;
+}
+
+// Fetch Directory
+app.post('/api/admin/list', async (req, res) => {
     try {
-        const [rows] = await promisePool.query("SELECT * FROM student_profile ORDER BY full_name ASC");
+        await verifyAdmin(req.body.adminToken);
+        const [rows] = await promisePool.query("SELECT email, full_name, roll_no, department FROM student_profile ORDER BY full_name ASC");
         res.json({ success: true, students: rows });
+    } catch (e) { res.status(403).json({ success: false }); }
+});
+
+// Fetch Specific Student Data for Editor
+app.post('/api/admin/student-data', async (req, res) => {
+    try {
+        await verifyAdmin(req.body.adminToken);
+        const [profile] = await promisePool.query("SELECT * FROM student_profile WHERE LOWER(email) = LOWER(?)", [req.body.targetEmail]);
+        const [courses] = await promisePool.query("SELECT * FROM student_courses WHERE student_email = ? ORDER BY semester ASC", [req.body.targetEmail]);
+        const [skills] = await promisePool.query("SELECT * FROM student_skills WHERE student_email = ?", [req.body.targetEmail]);
+        res.json({ success: true, profile: profile[0], courses, skills });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// ADMIN: Master Sync (Update or Create)
-app.post('/api/admin/master-sync', async (req, res) => {
-    const { adminToken, targetEmail, profile, skills, academics } = req.body;
+// Save Inline Edits from Pen Icons
+app.post('/api/admin/update-field', async (req, res) => {
     try {
-        const ticket = await googleClient.verifyIdToken({ idToken: adminToken, audience: CLIENT_ID });
-        if (ticket.getPayload().email !== 'sivanagu7771@gmail.com') return res.status(403).json({ success: false });
-
-        const profileSql = `
-            INSERT INTO student_profile (email, full_name, roll_no, department, cgpa, sgpa, attendance, reward_points, arrears, leaves, applied, shortlisted, offers, highest_ctc)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE 
-            full_name=VALUES(full_name), roll_no=VALUES(roll_no), department=VALUES(department), cgpa=VALUES(cgpa), 
-            sgpa=VALUES(sgpa), attendance=VALUES(attendance), reward_points=VALUES(reward_points), 
-            arrears=VALUES(arrears), leaves=VALUES(leaves), applied=VALUES(applied), 
-            shortlisted=VALUES(shortlisted), offers=VALUES(offers), highest_ctc=VALUES(highest_ctc)
-        `;
+        await verifyAdmin(req.body.adminToken);
+        const { targetEmail, field, value } = req.body;
         
-        await promisePool.query(profileSql, [targetEmail, profile.name, profile.roll, profile.dept, profile.cgpa, profile.sgpa, profile.attendance, profile.reward, profile.arrears, profile.leaves, profile.applied, profile.shortlisted, profile.offers, profile.highest_ctc]);
+        const allowed = ['full_name', 'roll_no', 'department', 'cgpa', 'sgpa', 'attendance', 'reward_points', 'arrears', 'leaves'];
+        if (!allowed.includes(field)) return res.status(400).json({ success: false });
 
-        // Refresh Sub-Tables
-        await promisePool.query("DELETE FROM student_skills WHERE student_email=?", [targetEmail]);
-        for (let s of skills) if(s.name) await promisePool.query("INSERT INTO student_skills (student_email, skill_name, total_levels, completed_levels, category, image_url) VALUES (?,?,?,?,?,?)", [targetEmail, s.name, s.total, s.comp, s.cat, s.img]);
-
-        await promisePool.query("DELETE FROM student_courses WHERE student_email=?", [targetEmail]);
-        for (let a of academics) if(a.course) await promisePool.query("INSERT INTO student_courses (student_email, semester, course_name, marks, grade) VALUES (?,?,?,?,?)", [targetEmail, a.sem, a.course, a.marks, a.grade]);
-
-        res.json({ success: true, message: "Records Synced Successfully!" });
-    } catch (error) { res.status(500).json({ success: false }); }
+        await promisePool.query(`UPDATE student_profile SET ${field} = ? WHERE LOWER(email) = LOWER(?)`, [value, targetEmail]);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Backend live on ${PORT}`));
+app.listen(PORT, () => console.log(`UNIFIED BACKEND ACTIVE ON PORT ${PORT}`));
